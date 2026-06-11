@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin – WM 2026</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a1628; color: #fff; min-height: 100vh; }
+  header { background: #0d1f3c; padding: 16px 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #1e3a5f; position: sticky; top: 0; z-index: 10; }
+  .back { color: #8899bb; text-decoration: none; font-size: 1.2rem; }
+  header h1 { font-size: 1.1rem; font-weight: 700; }
+
+  /* Login */
+  #loginScreen { display: flex; align-items: center; justify-content: center; min-height: 80vh; padding: 24px; }
+  .login-card { background: #0d1f3c; border-radius: 16px; padding: 32px; max-width: 360px; width: 100%; text-align: center; }
+  .login-card h2 { font-size: 1.3rem; margin-bottom: 8px; }
+  .login-card p { color: #8899bb; font-size: 0.88rem; margin-bottom: 24px; }
+  .login-card input { width: 100%; padding: 12px 16px; border-radius: 10px; border: 2px solid #1e3a5f; background: #132035; color: #fff; font-size: 1rem; outline: none; margin-bottom: 12px; }
+  .login-card input:focus { border-color: #4a90d9; }
+  .btn-primary { width: 100%; padding: 12px; border-radius: 10px; background: #2563eb; color: #fff; font-size: 1rem; font-weight: 700; border: none; cursor: pointer; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .error-msg { color: #f44336; font-size: 0.85rem; margin-top: 8px; }
+
+  /* Admin content */
+  #adminContent { display: none; max-width: 700px; margin: 0 auto; padding: 16px; }
+  .section-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #8899bb; margin: 20px 0 10px; }
+  .day-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #4a6a9a; margin: 16px 0 8px; padding: 0 4px; }
+  .match-row { background: #0d1f3c; border-radius: 10px; padding: 12px 16px; margin-bottom: 6px; display: flex; align-items: center; gap: 12px; }
+  .group-tag { font-size: 0.65rem; font-weight: 700; color: #f0c040; min-width: 30px; }
+  .teams { flex: 1; font-size: 0.9rem; font-weight: 600; }
+  .kickoff { font-size: 0.68rem; color: #4a6a9a; display: block; margin-top: 2px; }
+  .result-form { display: flex; align-items: center; gap: 6px; }
+  .result-form input { width: 36px; height: 36px; border-radius: 8px; border: 2px solid #1e3a5f; background: #132035; color: #fff; font-size: 1rem; font-weight: 700; text-align: center; outline: none; -moz-appearance: textfield; }
+  .result-form input::-webkit-outer-spin-button,
+  .result-form input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .result-form input:focus { border-color: #4a90d9; }
+  .result-form .sep { color: #4a6a9a; font-weight: 800; }
+  .save-btn { background: #1a4d2a; border: none; color: #4caf50; font-size: 0.8rem; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer; transition: background 0.15s; }
+  .save-btn:hover { background: #215c33; }
+  .save-btn:disabled { opacity: 0.4; cursor: default; }
+  .saved-badge { font-size: 0.75rem; color: #4caf50; animation: fadeOut 2s forwards; }
+  .future-badge { font-size: 0.7rem; color: #4a6a9a; font-style: italic; }
+  @keyframes fadeOut { 0%{opacity:1} 70%{opacity:1} 100%{opacity:0} }
+  #loading { text-align: center; padding: 60px 20px; color: #4a6a9a; }
+  .spinner { width: 32px; height: 32px; border: 3px solid #1e3a5f; border-top-color: #4a90d9; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 8px; }
+  .stat { background: #0d1f3c; border-radius: 10px; padding: 14px; text-align: center; }
+  .stat-num { font-size: 1.6rem; font-weight: 800; color: #f0c040; }
+  .stat-label { font-size: 0.72rem; color: #8899bb; margin-top: 2px; }
+</style>
+</head>
+<body>
+<header>
+  <a href="../" class="back">←</a>
+  <h1>🔧 Ergebnisse eintragen</h1>
+</header>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <h2>🔐 Admin-Zugang</h2>
+    <p>Nur für den Spielleiter</p>
+    <input type="password" id="pwInput" placeholder="Passwort" autocomplete="current-password">
+    <button class="btn-primary" onclick="login()">Einloggen</button>
+    <div class="error-msg" id="loginError"></div>
+  </div>
+</div>
+
+<div id="adminContent">
+  <div id="loading"><div class="spinner"></div>Lade Spiele…</div>
+  <div id="inner" style="display:none">
+    <div class="section-title">📈 Übersicht</div>
+    <div class="stats">
+      <div class="stat"><div class="stat-num" id="statPlayed">0</div><div class="stat-label">gespielt</div></div>
+      <div class="stat"><div class="stat-num" id="statResults">0</div><div class="stat-label">Ergebnisse</div></div>
+      <div class="stat"><div class="stat-num" id="statOpen">0</div><div class="stat-label">ausstehend</div></div>
+    </div>
+    <div class="section-title">⚽ Ergebnisse eingeben</div>
+    <div id="matchList"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://mfqsjhrdjncviebqezls.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_vccXpqiZfjyH099V0Ua-Qg_k8dhJ3Vg';
+const ADMIN_PW = 'WM2026';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+document.getElementById('pwInput').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+
+function login() {
+  const pw = document.getElementById('pwInput').value;
+  if (pw === ADMIN_PW) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminContent').style.display = 'block';
+    loadMatches();
+  } else {
+    document.getElementById('loginError').textContent = 'Falsches Passwort';
+  }
+}
+
+function fmtKickoff(utc) {
+  return new Date(utc).toLocaleString('de-DE', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Berlin'}) + ' Uhr';
+}
+
+let matches = [];
+
+async function loadMatches() {
+  const { data } = await sb.from('matches').select('*').order('kickoff_utc');
+  matches = data || [];
+  renderMatches();
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('inner').style.display = 'block';
+}
+
+function renderMatches() {
+  const now = new Date();
+  const played = matches.filter(m => new Date(m.kickoff_utc) <= now);
+  const withResult = matches.filter(m => m.result);
+  document.getElementById('statPlayed').textContent = played.length;
+  document.getElementById('statResults').textContent = withResult.length;
+  document.getElementById('statOpen').textContent = played.length - withResult.length;
+
+  const byDate = {};
+  matches.forEach(m => (byDate[m.match_date] = byDate[m.match_date] || []).push(m));
+
+  document.getElementById('matchList').innerHTML = Object.entries(byDate).map(([date, ms]) => {
+    const rows = ms.map(m => {
+      const started = new Date(m.kickoff_utc) <= now;
+      const [rh='', ra=''] = m.result ? m.result.split(':') : ['',''];
+      return `<div class="match-row" id="row-${m.id}">
+        <span class="group-tag">Gr.${m.group_name}</span>
+        <div class="teams">
+          ${m.home} – ${m.away}
+          <span class="kickoff">${fmtKickoff(m.kickoff_utc)}</span>
+        </div>
+        ${started ? `
+        <div class="result-form">
+          <input type="number" min="0" max="20" id="rh-${m.id}" value="${rh}" placeholder="–">
+          <span class="sep">:</span>
+          <input type="number" min="0" max="20" id="ra-${m.id}" value="${ra}" placeholder="–">
+          <button class="save-btn" onclick="saveResult(${m.id})" id="btn-${m.id}">Speichern</button>
+          <span id="ok-${m.id}"></span>
+        </div>` : `<span class="future-badge">Noch nicht gestartet</span>`}
+      </div>`;
+    }).join('');
+    return `<div class="day-label">📅 ${date.replace('.','')} Juni</div>${rows}`;
+  }).join('');
+}
+
+async function saveResult(id) {
+  const h = document.getElementById('rh-'+id).value;
+  const a = document.getElementById('ra-'+id).value;
+  if (h === '' || a === '') { alert('Bitte beide Tore eingeben'); return; }
+  const result = `${h}:${a}`;
+  const btn = document.getElementById('btn-'+id);
+  btn.disabled = true;
+  const { error } = await sb.from('matches').update({ result }).eq('id', id);
+  if (error) {
+    alert('Fehler: ' + error.message);
+    btn.disabled = false;
+  } else {
+    const ok = document.getElementById('ok-'+id);
+    ok.className = 'saved-badge';
+    ok.textContent = '✓ gespeichert';
+    setTimeout(() => { ok.textContent = ''; btn.disabled = false; }, 2500);
+    const m = matches.find(x => x.id === id);
+    if (m) m.result = result;
+    renderMatches();
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WM 2026 Tippspiel</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a1628; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; }
+  .hero { text-align: center; margin-bottom: 40px; }
+  .trophy { font-size: 64px; margin-bottom: 12px; }
+  h1 { color: #fff; font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; }
+  h1 span { color: #f0c040; }
+  .subtitle { color: #8899bb; margin-top: 8px; font-size: 1rem; }
+  .section { width: 100%; max-width: 480px; margin-bottom: 32px; }
+  .section-title { color: #8899bb; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; padding-left: 4px; }
+  .btn { display: block; width: 100%; padding: 14px 20px; border-radius: 12px; text-decoration: none; font-size: 1rem; font-weight: 600; text-align: center; transition: all 0.15s; cursor: pointer; border: none; }
+  .btn + .btn { margin-top: 10px; }
+  .btn-player { background: #1e3a5f; color: #fff; }
+  .btn-player:hover { background: #2a5080; transform: translateY(-1px); }
+  .btn-player .emoji { margin-right: 8px; font-size: 1.2em; }
+  .btn-dashboard { background: linear-gradient(135deg, #1a6b3a, #0f4a28); color: #fff; font-size: 1.1rem; }
+  .btn-dashboard:hover { background: linear-gradient(135deg, #22854a, #1a6b3a); transform: translateY(-1px); }
+  .btn-admin { background: #1a1a2e; color: #666; font-size: 0.9rem; border: 1px solid #333; }
+  .btn-admin:hover { color: #999; border-color: #555; }
+  .divider { width: 100%; max-width: 480px; border: none; border-top: 1px solid #1e2d45; margin: 4px 0 28px; }
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="trophy">⚽</div>
+  <h1>WM 2026 <span>Tippspiel</span></h1>
+  <p class="subtitle">Familienrunde · 72 Vorrundenspiele</p>
+</div>
+
+<div class="section">
+  <div class="section-title">Meine Tipps abgeben</div>
+  <a href="tipp/?name=Nolan"     class="btn btn-player"><span class="emoji">🏃</span>Nolan</a>
+  <a href="tipp/?name=Leonie"    class="btn btn-player"><span class="emoji">⭐</span>Leonie</a>
+  <a href="tipp/?name=Anna"      class="btn btn-player"><span class="emoji">🌟</span>Anna</a>
+  <a href="tipp/?name=Georg"     class="btn btn-player"><span class="emoji">🎯</span>Georg</a>
+  <a href="tipp/?name=Ester"     class="btn btn-player"><span class="emoji">🔥</span>Ester</a>
+  <a href="tipp/?name=Snezhana"  class="btn btn-player"><span class="emoji">💫</span>Snezhana</a>
+  <a href="tipp/?name=Oliver"    class="btn btn-player"><span class="emoji">🏆</span>Oliver</a>
+</div>
+
+<hr class="divider">
+
+<div class="section">
+  <a href="dashboard/" class="btn btn-dashboard">📊 Dashboard &amp; Rangliste</a>
+</div>
+
+<div class="section">
+  <a href="admin/" class="btn btn-admin">🔧 Ergebnisse eintragen (Admin)</a>
+</div>
+</body>
+</html>

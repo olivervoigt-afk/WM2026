@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meine Tipps – WM 2026</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a1628; color: #fff; min-height: 100vh; }
+  header { background: #0d1f3c; padding: 16px 20px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 10; border-bottom: 1px solid #1e3a5f; }
+  .back { color: #8899bb; text-decoration: none; font-size: 1.2rem; }
+  header h1 { font-size: 1.1rem; font-weight: 700; flex: 1; }
+  header h1 span { color: #f0c040; }
+  .pts-badge { background: #f0c040; color: #0a1628; font-size: 0.75rem; font-weight: 800; padding: 3px 8px; border-radius: 20px; }
+  .info-bar { background: #132035; padding: 10px 20px; font-size: 0.78rem; color: #8899bb; border-bottom: 1px solid #1e3a5f; }
+  .info-bar strong { color: #aac4e8; }
+  main { max-width: 640px; margin: 0 auto; padding: 16px; }
+  .day-group { margin-bottom: 24px; }
+  .day-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #8899bb; margin-bottom: 10px; padding: 0 4px; }
+  .match-card { background: #0d1f3c; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px; position: relative; transition: opacity 0.2s; }
+  .match-card.locked { opacity: 0.7; }
+  .group-tag { position: absolute; top: 8px; right: 10px; font-size: 0.65rem; font-weight: 700; color: #f0c040; opacity: 0.7; }
+  .team { font-size: 0.88rem; font-weight: 600; }
+  .team.home { text-align: right; }
+  .team.away { text-align: left; }
+  .score-input { display: flex; align-items: center; gap: 6px; justify-content: center; }
+  .score-input input { width: 40px; height: 40px; border-radius: 8px; border: 2px solid #1e3a5f; background: #132035; color: #fff; font-size: 1.1rem; font-weight: 700; text-align: center; outline: none; transition: border-color 0.2s; -moz-appearance: textfield; }
+  .score-input input::-webkit-outer-spin-button,
+  .score-input input::-webkit-inner-spin-button { -webkit-appearance: none; }
+  .score-input input:focus { border-color: #4a90d9; }
+  .score-input input:disabled { opacity: 0.5; cursor: not-allowed; background: #0a1628; }
+  .score-input .sep { font-size: 1.2rem; font-weight: 800; color: #4a6a9a; }
+  .lock-icon { font-size: 1.1rem; color: #4a6a9a; }
+  .save-dot { width: 8px; height: 8px; border-radius: 50%; background: transparent; margin: 0 auto; transition: background 0.3s; }
+  .save-dot.saving { background: #f0c040; }
+  .save-dot.saved { background: #4caf50; }
+  .save-dot.error { background: #f44336; }
+  .kickoff-time { font-size: 0.68rem; color: #4a6a9a; text-align: center; margin-top: 3px; }
+  .pts-display { position: absolute; top: 8px; left: 10px; font-size: 0.7rem; font-weight: 800; padding: 2px 6px; border-radius: 10px; }
+  .pts-3 { background: #1a4d2a; color: #4caf50; }
+  .pts-2 { background: #3d3000; color: #f0c040; }
+  .pts-1 { background: #3d2000; color: #ff9800; }
+  .pts-0 { background: #3d0000; color: #f44336; }
+  #loading { text-align: center; padding: 60px 20px; color: #4a6a9a; }
+  .spinner { width: 32px; height: 32px; border: 3px solid #1e3a5f; border-top-color: #4a90d9; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .total-bar { background: #0d1f3c; border-top: 1px solid #1e3a5f; position: sticky; bottom: 0; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; font-size: 0.9rem; }
+  .total-bar strong { font-size: 1.1rem; color: #f0c040; }
+</style>
+</head>
+<body>
+<header>
+  <a href="../" class="back">←</a>
+  <h1>Tipps von <span id="participantName">…</span></h1>
+  <div class="pts-badge" id="totalPts">0 Pkt</div>
+</header>
+<div class="info-bar">
+  <strong>🔒 Gesperrt nach Anstoß</strong> · Format: Heimtore : Gasttore · Wird automatisch gespeichert
+</div>
+
+<main>
+  <div id="loading"><div class="spinner"></div>Lade Spiele…</div>
+  <div id="matchList"></div>
+</main>
+
+<div class="total-bar">
+  <span>Gesamtpunkte</span>
+  <strong id="totalPtsBottom">0</strong>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL = 'https://mfqsjhrdjncviebqezls.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_vccXpqiZfjyH099V0Ua-Qg_k8dhJ3Vg';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const params = new URLSearchParams(location.search);
+const PARTICIPANT = params.get('name') || '';
+const VALID = ['Nolan','Leonie','Anna','Georg','Ester','Snezhana','Oliver'];
+
+if (!VALID.includes(PARTICIPANT)) {
+  document.body.innerHTML = '<div style="text-align:center;padding:60px;color:#f44336;font-size:1.2rem">Ungültiger Teilnehmer.<br><a href="../" style="color:#4a90d9">← Zurück</a></div>';
+  throw new Error('invalid participant');
+}
+
+document.getElementById('participantName').textContent = PARTICIPANT;
+document.title = `${PARTICIPANT}s Tipps – WM 2026`;
+
+function calcPoints(tip, result) {
+  if (!tip || !result) return null;
+  const [th, ta] = tip.split(':').map(Number);
+  const [rh, ra] = result.split(':').map(Number);
+  if ([th,ta,rh,ra].some(isNaN)) return null;
+  if (th === rh && ta === ra) return 3;
+  if (th - ta === rh - ra) return 2;
+  if (Math.sign(th - ta) === Math.sign(rh - ra)) return 1;
+  return 0;
+}
+
+function fmtKickoff(utc) {
+  const d = new Date(utc);
+  return d.toLocaleString('de-DE', {weekday:'short', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit', timeZone:'Europe/Berlin'}) + ' Uhr';
+}
+
+let matches = [], tips = {}, saveTimers = {};
+
+async function load() {
+  const [mRes, tRes] = await Promise.all([
+    sb.from('matches').select('*').order('kickoff_utc'),
+    sb.from('tips').select('*').eq('participant', PARTICIPANT)
+  ]);
+  matches = mRes.data || [];
+  (tRes.data || []).forEach(t => tips[t.match_id] = t.tip);
+  render();
+}
+
+function render() {
+  const now = new Date();
+  let totalPts = 0;
+  const byDate = {};
+  matches.forEach(m => {
+    (byDate[m.match_date] = byDate[m.match_date] || []).push(m);
+  });
+
+  const html = Object.entries(byDate).map(([date, ms]) => {
+    const rows = ms.map(m => {
+      const locked = new Date(m.kickoff_utc) <= now;
+      const tip = tips[m.id] || '';
+      const [th='', ta=''] = tip ? tip.split(':') : ['',''];
+      const pts = calcPoints(tip, m.result);
+      if (pts !== null) totalPts += pts;
+      const ptsHtml = pts !== null ? `<div class="pts-display pts-${pts}">${pts} Pkt</div>` : '';
+      const lockHtml = locked ? '<div class="lock-icon">🔒</div>' : `<div class="save-dot" id="dot-${m.id}"></div>`;
+      return `
+      <div class="match-card${locked?' locked':''}" id="card-${m.id}">
+        ${ptsHtml}
+        <div class="group-tag">Gr.${m.group_name}</div>
+        <div class="team home">${m.home}</div>
+        <div>
+          <div class="score-input">
+            <input type="number" min="0" max="20" id="h-${m.id}" value="${th}" ${locked?'disabled':''} data-id="${m.id}" data-side="h" placeholder="–">
+            <span class="sep">:</span>
+            <input type="number" min="0" max="20" id="a-${m.id}" value="${ta}" ${locked?'disabled':''} data-id="${m.id}" data-side="a" placeholder="–">
+          </div>
+          ${lockHtml}
+          <div class="kickoff-time">${fmtKickoff(m.kickoff_utc)}</div>
+        </div>
+        <div class="team away">${m.away}</div>
+      </div>`;
+    }).join('');
+    return `<div class="day-group"><div class="day-label">📅 ${date.replace('.','')} Juni</div>${rows}</div>`;
+  }).join('');
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('matchList').innerHTML = html;
+  document.getElementById('totalPts').textContent = totalPts + ' Pkt';
+  document.getElementById('totalPtsBottom').textContent = totalPts;
+
+  document.querySelectorAll('.score-input input').forEach(inp => {
+    inp.addEventListener('change', onInput);
+    inp.addEventListener('input', onInput);
+  });
+}
+
+function onInput(e) {
+  const id = parseInt(e.target.dataset.id);
+  const hEl = document.getElementById('h-'+id);
+  const aEl = document.getElementById('a-'+id);
+  const h = hEl.value.trim(), a = aEl.value.trim();
+  if (h === '' || a === '') return;
+  clearTimeout(saveTimers[id]);
+  setDot(id, 'saving');
+  saveTimers[id] = setTimeout(() => saveTip(id, `${h}:${a}`), 600);
+}
+
+function setDot(id, state) {
+  const dot = document.getElementById('dot-'+id);
+  if (dot) { dot.className = 'save-dot ' + state; }
+}
+
+async function saveTip(id, tip) {
+  tips[id] = tip;
+  const { error } = await sb.from('tips').upsert(
+    { match_id: id, participant: PARTICIPANT, tip, updated_at: new Date().toISOString() },
+    { onConflict: 'match_id,participant' }
+  );
+  if (error) {
+    setDot(id, 'error');
+    console.error(error);
+  } else {
+    setDot(id, 'saved');
+    setTimeout(() => setDot(id, ''), 2000);
+    updateTotal();
+  }
+}
+
+function updateTotal() {
+  const now = new Date();
+  let total = 0;
+  matches.forEach(m => {
+    const pts = calcPoints(tips[m.id], m.result);
+    if (pts !== null) total += pts;
+  });
+  document.getElementById('totalPts').textContent = total + ' Pkt';
+  document.getElementById('totalPtsBottom').textContent = total;
+}
+
+// Subscribe to result updates
+sb.channel('results').on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'matches' }, payload => {
+  const m = matches.find(x => x.id === payload.new.id);
+  if (m) { m.result = payload.new.result; render(); }
+}).subscribe();
+
+load();
+</script>
+</body>
+</html>
