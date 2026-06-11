@@ -13,6 +13,17 @@
   header h1 span { color: #f0c040; }
   .pts-badge { background: #f0c040; color: #0a1628; font-size: 0.75rem; font-weight: 800; padding: 3px 8px; border-radius: 20px; }
   .info-bar { background: #132035; padding: 10px 20px; font-size: 0.78rem; color: #8899bb; border-bottom: 1px solid #1e3a5f; }
+  /* Login */
+  #loginScreen { position: fixed; inset: 0; background: #0a1628; display: flex; align-items: center; justify-content: center; z-index: 100; padding: 24px; }
+  .login-card { background: #0d1f3c; border-radius: 16px; padding: 32px 28px; max-width: 340px; width: 100%; text-align: center; }
+  .login-card .emoji { font-size: 2.5rem; margin-bottom: 12px; }
+  .login-card h2 { font-size: 1.4rem; margin-bottom: 4px; }
+  .login-card .sub { color: #8899bb; font-size: 0.88rem; margin-bottom: 24px; }
+  .login-card input { width: 100%; padding: 13px 16px; border-radius: 10px; border: 2px solid #1e3a5f; background: #132035; color: #fff; font-size: 1rem; outline: none; margin-bottom: 12px; letter-spacing: 2px; }
+  .login-card input:focus { border-color: #4a90d9; }
+  .login-btn { width: 100%; padding: 13px; border-radius: 10px; background: #2563eb; color: #fff; font-size: 1rem; font-weight: 700; border: none; cursor: pointer; }
+  .login-btn:hover { background: #1d4ed8; }
+  .login-error { color: #f44336; font-size: 0.85rem; margin-top: 10px; min-height: 20px; }
   .info-bar strong { color: #aac4e8; }
   main { max-width: 640px; margin: 0 auto; padding: 16px; }
   .day-group { margin-bottom: 24px; }
@@ -59,7 +70,18 @@
 </div>
 
 <main>
-  <div id="loading"><div class="spinner"></div>Lade Spiele…</div>
+  <div id="loginScreen">
+  <div class="login-card">
+    <div class="emoji">⚽</div>
+    <h2 id="loginName">Hallo!</h2>
+    <p class="sub">Bitte gib dein Passwort ein</p>
+    <input type="password" id="pwInput" placeholder="Passwort" autocomplete="current-password">
+    <button class="login-btn" onclick="doLogin()">Los geht's</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<div id="loading"><div class="spinner"></div>Lade Spiele…</div>
   <div id="matchList"></div>
 </main>
 
@@ -78,13 +100,42 @@ const params = new URLSearchParams(location.search);
 const PARTICIPANT = params.get('name') || '';
 const VALID = ['Nolan','Leonie','Anna','Georg','Ester','Snezhana','Oliver'];
 
+const PASSWORDS = {
+  Nolan: 'adler', Leonie: 'gurke', Anna: 'stern',
+  Georg: 'tor', Ester: 'ball', Snezhana: 'mond', Oliver: 'held'
+};
+
 if (!VALID.includes(PARTICIPANT)) {
   document.body.innerHTML = '<div style="text-align:center;padding:60px;color:#f44336;font-size:1.2rem">Ungültiger Teilnehmer.<br><a href="../" style="color:#4a90d9">← Zurück</a></div>';
   throw new Error('invalid participant');
 }
 
+document.getElementById('loginName').textContent = `Hallo, ${PARTICIPANT}!`;
 document.getElementById('participantName').textContent = PARTICIPANT;
 document.title = `${PARTICIPANT}s Tipps – WM 2026`;
+
+const SESSION_KEY = `wm2026_auth_${PARTICIPANT}`;
+
+function doLogin() {
+  const pw = document.getElementById('pwInput').value.trim().toLowerCase();
+  if (pw === PASSWORDS[PARTICIPANT]) {
+    sessionStorage.setItem(SESSION_KEY, '1');
+    document.getElementById('loginScreen').style.display = 'none';
+    load();
+  } else {
+    document.getElementById('loginError').textContent = '❌ Falsches Passwort';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
+  }
+}
+
+document.getElementById('pwInput').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// Skip login if already authenticated this session
+if (sessionStorage.getItem(SESSION_KEY)) {
+  document.getElementById('loginScreen').style.display = 'none';
+  load();
+}
 
 function calcPoints(tip, result) {
   if (!tip || !result) return null;
@@ -210,8 +261,6 @@ sb.channel('results').on('postgres_changes', { event: 'UPDATE', schema: 'public'
   const m = matches.find(x => x.id === payload.new.id);
   if (m) { m.result = payload.new.result; render(); }
 }).subscribe();
-
-load();
 </script>
 </body>
 </html>
