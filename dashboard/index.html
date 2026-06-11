@@ -117,12 +117,14 @@
     min-width:52px;text-align:center;
   }
   .result-box.tbd { color:var(--muted);font-size:0.82rem;border-color:transparent;background:transparent; }
-  .tips-grid { display:flex;flex-wrap:wrap;gap:5px;padding:8px 12px 10px; }
+  .tips-grid { display:flex;flex-wrap:wrap;gap:5px;padding:8px 12px 6px; }
   .tip-item {
     display:flex;align-items:center;gap:5px;
     background:#080f1d;border:1px solid var(--border);
-    border-radius:9px;padding:4px 8px;
+    border-radius:9px;padding:4px 8px;transition:border-color 0.15s;
   }
+  .tip-item.has-tip { border-color:rgba(34,197,94,0.25); }
+  .tip-item.no-tip  { opacity:0.45; }
   .tip-avatar {
     width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;
     font-size:0.55rem;font-weight:800;color:#fff;flex-shrink:0;
@@ -134,6 +136,12 @@
   .tp2{background:rgba(245,200,66,0.15);color:var(--gold);}
   .tp1{background:rgba(249,115,22,0.15);color:var(--orange);}
   .tp0{background:rgba(239,68,68,0.12);color:var(--red);}
+  .reveal-hint {
+    display:flex;align-items:center;gap:5px;
+    margin:0 12px 8px;padding:5px 8px;border-radius:7px;
+    background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.15);
+    font-size:0.65rem;color:var(--muted);font-weight:500;
+  }
 
   #loading{text-align:center;padding:60px 20px;color:var(--muted);}
   .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
@@ -268,14 +276,21 @@ function render(){
       const resultHtml=m.result
         ?`<div class="result-box">${m.result}</div>`
         :`<div class="result-box tbd">${started?'läuft':'–:–'}</div>`;
-      // Tips only visible after kickoff
+      // Before kickoff: show who tipped (✓) vs not (–), hide actual scores
+      // After kickoff: show all scores and points
+      const tippedCount=PARTICIPANTS.filter(p=>tipMap[m.id]?.[p]).length;
+      const hintHtml=!started
+        ?`<div class="reveal-hint">🔒 Tipps werden nach Anstoß aufgedeckt · ${tippedCount}/7 haben getippt</div>`
+        :'';
       const tipsHtml=PARTICIPANTS.map(p=>{
         const tip=tipMap[m.id]?.[p];
         const pts=calcPoints(tip,m.result);
-        const scoreStr=started?(tip||'–'):'?';
-        const hidden=!started||!tip;
+        const hasTip=!!tip;
+        let scoreStr, hidden;
+        if(started){ scoreStr=tip||'–'; hidden=!tip; }
+        else { scoreStr=hasTip?'✓':'–'; hidden=!hasTip; }
         const ptsBadge=pts!==null&&started&&tip?`<span class="tip-pts-badge tp${pts}">${pts}</span>`:'';
-        return`<div class="tip-item">
+        return`<div class="tip-item${hasTip?' has-tip':' no-tip'}">
           <div class="tip-avatar" style="background:${COLORS[p]}">${p[0]}</div>
           <span class="tip-score${hidden?' hidden':''}">${scoreStr}</span>
           ${ptsBadge}
@@ -287,7 +302,7 @@ function render(){
           <span class="match-teams-str">${m.home} – ${m.away}</span>
           ${resultHtml}
         </div>
-        <div class="tips-grid">${tipsHtml}</div>
+        ${hintHtml}<div class="tips-grid">${tipsHtml}</div>
       </div>`;
     }).join('');
     return`<div class="day-label">📅 ${date.replace('.','')} Juni 2026</div>${rows}`;
