@@ -138,6 +138,23 @@
   #loading{text-align:center;padding:60px 20px;color:var(--muted);}
   .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
   @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* WHO AM I */
+  .who-bar {
+    display:flex;align-items:center;gap:8px;padding:8px 12px;
+    background:rgba(245,200,66,0.05);border-bottom:1px solid var(--border);
+    font-size:0.75rem;color:var(--muted);font-weight:500;flex-wrap:wrap;
+  }
+  .who-bar span{white-space:nowrap;}
+  .who-chips{display:flex;gap:5px;flex-wrap:wrap;}
+  .who-chip {
+    font-size:0.72rem;font-weight:700;padding:4px 10px;border-radius:20px;cursor:pointer;
+    background:var(--card);border:1px solid var(--border);color:var(--muted);
+    transition:all 0.15s;
+  }
+  .who-chip:hover{border-color:#334;color:var(--text);}
+  .who-chip.active{background:rgba(245,200,66,0.15);border-color:rgba(245,200,66,0.4);color:var(--gold);}
+  .tip-locked{color:var(--muted);font-size:0.72rem;font-style:italic;}
 </style>
 </head>
 <body>
@@ -155,6 +172,10 @@
     <div class="tab active" onclick="showTab('standings')">🏆 Rangliste</div>
     <div class="tab" onclick="showTab('matches')">⚽ Spiele</div>
   </div>
+  <div class="who-bar">
+    <span>👤 Ich bin:</span>
+    <div class="who-chips" id="whoChips"></div>
+  </div>
 </header>
 
 <main>
@@ -170,8 +191,19 @@
 const SUPABASE_URL='https://mfqsjhrdjncviebqezls.supabase.co';
 const SUPABASE_KEY='sb_publishable_vccXpqiZfjyH099V0Ua-Qg_k8dhJ3Vg';
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const PARTICIPANTS=['Nolan','Leonie','Anna','Georg','Ester','Snezhana','Oliver'];
-const COLORS={Nolan:'#2563eb',Leonie:'#db2777',Anna:'#0891b2',Georg:'#d97706',Ester:'#059669',Snezhana:'#7c3aed',Oliver:'#f59e0b'};
+const PARTICIPANTS=['Nolan','Leonie','Anna','Georg','Esther','Snezhana','Oliver'];
+const COLORS={Nolan:'#2563eb',Leonie:'#db2777',Anna:'#0891b2',Georg:'#d97706',Esther:'#059669',Snezhana:'#7c3aed',Oliver:'#f59e0b'};
+
+const WHO_KEY='wm2026_dashboard_who';
+let ME=sessionStorage.getItem(WHO_KEY)||null;
+
+function buildWhoChips(){
+  document.getElementById('whoChips').innerHTML=PARTICIPANTS.map(p=>
+    `<div class="who-chip${ME===p?' active':''}" onclick="setMe('${p}')">${p}</div>`
+  ).join('');
+}
+function setMe(p){ME=(ME===p)?null:p;sessionStorage.setItem(WHO_KEY,ME||'');buildWhoChips();render();}
+buildWhoChips();
 
 function calcPoints(tip,result){
   if(!tip||!result)return null;
@@ -266,12 +298,16 @@ function render(){
       const resultHtml=m.result
         ?`<div class="result-box">${m.result}</div>`
         :`<div class="result-box tbd">${started?'läuft':'–:–'}</div>`;
+      // Tips visible if: match started OR (ME is set AND ME has already tipped this match)
+      const myTip=tipMap[m.id]?.[ME];
+      const tipsVisible=started||(ME&&myTip);
       const tipsHtml=PARTICIPANTS.map(p=>{
         const tip=tipMap[m.id]?.[p];
         const pts=calcPoints(tip,m.result);
-        const scoreStr=!started?'?':tip||'–';
-        const hidden=!started||!tip;
-        const ptsBadge=pts!==null&&!hidden?`<span class="tip-pts-badge tp${pts}">${pts}</span>`:'';
+        const show=tipsVisible;
+        const scoreStr=show?(tip||'–'):'?';
+        const hidden=!show||!tip;
+        const ptsBadge=pts!==null&&show&&tip?`<span class="tip-pts-badge tp${pts}">${pts}</span>`:'';
         return`<div class="tip-item">
           <div class="tip-avatar" style="background:${COLORS[p]}">${p[0]}</div>
           <span class="tip-score${hidden?' hidden':''}">${scoreStr}</span>
