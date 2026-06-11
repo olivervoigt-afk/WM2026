@@ -216,7 +216,7 @@ function renderMatches(){
         </div>`:`<span class="not-started">Noch nicht</span>`}
       </div>`;
     }).join('');
-    return`<div class="day-label">📅 ${date.replace('.','')} Juni 2026</div>${rows}`;
+    return`<div class="day-label">📅 ${date.split('.')[0]}. Juni 2026</div>${rows}`;
   }).join('');
 }
 

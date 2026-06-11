@@ -305,7 +305,7 @@ function render(){
         ${hintHtml}<div class="tips-grid">${tipsHtml}</div>
       </div>`;
     }).join('');
-    return`<div class="day-label">📅 ${date.replace('.','')} Juni 2026</div>${rows}`;
+    return`<div class="day-label">📅 ${date.split('.')[0]}. Juni 2026</div>${rows}`;
   }).join('');
   document.getElementById('tabMatches').innerHTML=matchesHtml;
 }

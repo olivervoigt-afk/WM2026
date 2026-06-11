@@ -339,7 +339,7 @@ function render() {
       </div>`;
     }).join('');
     return `<div class="day-group">
-      <div class="day-label">📅 ${date.replace('.','')} Juni 2026</div>
+      <div class="day-label">📅 ${date.split('.')[0]}. Juni 2026</div>
       ${rows}
     </div>`;
   }).join('');
