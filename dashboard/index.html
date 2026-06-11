@@ -3,218 +3,299 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard – WM 2026 Tippspiel</title>
+<title>Dashboard – WM 2026 Familie Voigt</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a1628; color: #fff; min-height: 100vh; }
-  header { background: #0d1f3c; padding: 16px 20px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #1e3a5f; position: sticky; top: 0; z-index: 20; }
-  .back { color: #8899bb; text-decoration: none; font-size: 1.2rem; }
-  header h1 { font-size: 1.1rem; font-weight: 700; }
-  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #4caf50; animation: pulse 1.5s infinite; margin-left: auto; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
-  main { max-width: 900px; margin: 0 auto; padding: 16px; }
+  :root {
+    --bg:#060e1e; --card:#0c1a30; --card2:#101f38; --border:#1a2f50;
+    --gold:#f5c842; --gold2:#e6a800; --blue:#2563eb; --text:#e8eef8;
+    --muted:#607090; --green:#22c55e; --orange:#f97316; --red:#ef4444;
+  }
+  body { font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
 
-  /* Standings */
-  .section-title { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #8899bb; margin: 20px 0 10px; }
-  .standings { background: #0d1f3c; border-radius: 14px; overflow: hidden; margin-bottom: 8px; }
-  .standing-row { display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid #0a1628; gap: 12px; transition: background 0.15s; }
-  .standing-row:last-child { border-bottom: none; }
-  .standing-row.rank-1 { background: linear-gradient(90deg, #2a1f00, #0d1f3c); }
-  .standing-row.rank-2 { background: linear-gradient(90deg, #1a1f2a, #0d1f3c); }
-  .standing-row.rank-3 { background: linear-gradient(90deg, #1a2518, #0d1f3c); }
-  .rank { width: 24px; font-size: 1.1rem; text-align: center; }
-  .rank-1 .rank::before { content: '🥇'; }
-  .rank-2 .rank::before { content: '🥈'; }
-  .rank-3 .rank::before { content: '🥉'; }
-  .rank-n { color: #4a6a9a; font-size: 0.9rem; font-weight: 600; }
-  .name { flex: 1; font-weight: 700; font-size: 1rem; }
-  .pts { font-size: 1.4rem; font-weight: 800; color: #f0c040; min-width: 50px; text-align: right; }
-  .pts-label { font-size: 0.75rem; color: #8899bb; margin-left: 3px; font-weight: 400; }
-  .breakdown { display: flex; gap: 8px; margin-left: auto; }
-  .chip { font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 8px; }
-  .chip-3 { background: #1a4d2a; color: #4caf50; }
-  .chip-2 { background: #3d3000; color: #f0c040; }
-  .chip-1 { background: #3d2000; color: #ff9800; }
+  /* HEADER */
+  header {
+    background: linear-gradient(135deg,#0a1628,#0d2244);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top:0; z-index:20;
+  }
+  .header-inner { display:flex; align-items:center; gap:12px; padding:12px 16px; }
+  .back {
+    width:34px;height:34px;border-radius:10px;
+    background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;
+    color:var(--muted);text-decoration:none;font-size:1.1rem;flex-shrink:0;
+  }
+  .back:hover{background:rgba(255,255,255,0.1);}
+  .header-text { flex:1; }
+  .header-title {
+    font-family:'Bebas Neue',sans-serif; font-size:1.3rem; letter-spacing:1.5px;
+    background:linear-gradient(135deg,#fff,var(--gold));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  }
+  .header-sub { font-size:0.7rem; color:var(--muted); margin-top:1px; font-weight:500; }
+  .live-pill {
+    display:flex;align-items:center;gap:5px;
+    background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);
+    border-radius:20px;padding:4px 10px;font-size:0.7rem;font-weight:700;color:var(--green);
+  }
+  .live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 1.5s infinite;}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
 
-  /* Match table */
-  .match-section { margin-bottom: 32px; }
-  .day-header { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #8899bb; margin: 20px 0 8px; padding: 0 4px; }
-  .match-row { background: #0d1f3c; border-radius: 10px; margin-bottom: 6px; overflow: hidden; }
-  .match-header { display: flex; align-items: center; padding: 10px 14px; gap: 10px; border-bottom: 1px solid #0a1628; }
-  .group-tag { font-size: 0.65rem; font-weight: 700; color: #f0c040; background: #1e3a1a; padding: 2px 6px; border-radius: 6px; }
-  .teams { flex: 1; font-size: 0.92rem; font-weight: 600; }
-  .result-badge { font-size: 0.95rem; font-weight: 800; color: #fff; background: #1e3a5f; padding: 3px 10px; border-radius: 8px; min-width: 52px; text-align: center; }
-  .result-badge.tbd { color: #4a6a9a; background: transparent; font-size: 0.8rem; }
-  .kickoff { font-size: 0.68rem; color: #4a6a9a; }
-  .tips-row { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 14px 10px; }
-  .tip-chip { display: flex; align-items: center; gap: 5px; background: #132035; border-radius: 8px; padding: 4px 9px; font-size: 0.78rem; }
-  .tip-name { color: #8899bb; font-weight: 500; }
-  .tip-val { font-weight: 700; color: #fff; }
-  .tip-pts { font-size: 0.7rem; font-weight: 800; padding: 1px 5px; border-radius: 6px; margin-left: 2px; }
-  .p3 { background: #1a4d2a; color: #4caf50; }
-  .p2 { background: #3d3000; color: #f0c040; }
-  .p1 { background: #3d2000; color: #ff9800; }
-  .p0 { background: #2a0000; color: #f44336; }
-  .no-tip { color: #2a3a55; font-style: italic; }
+  /* TABS */
+  .tabs { display:flex; border-bottom:1px solid var(--border); background:var(--bg); }
+  .tab {
+    flex:1; padding:11px 0; text-align:center; font-size:0.82rem; font-weight:700;
+    color:var(--muted); cursor:pointer; border-bottom:2px solid transparent;
+    transition:all 0.18s; letter-spacing:0.5px;
+  }
+  .tab.active { color:var(--gold); border-bottom-color:var(--gold); }
 
-  #loading { text-align: center; padding: 60px 20px; color: #4a6a9a; }
-  .spinner { width: 32px; height: 32px; border: 3px solid #1e3a5f; border-top-color: #4a90d9; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .updated { font-size: 0.68rem; color: #2a3a55; margin-left: auto; }
+  main { max-width:700px; margin:0 auto; padding:16px 12px 40px; }
+
+  /* STANDINGS */
+  #tabStandings{}
+  .podium { display:flex; align-items:flex-end; justify-content:center; gap:10px; margin:8px 0 20px; }
+  .podium-item { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; max-width:110px; }
+  .podium-avatar {
+    border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-weight:800; color:#fff; font-size:1.1rem; flex-shrink:0;
+    border:3px solid transparent;
+  }
+  .podium-1 .podium-avatar { width:60px;height:60px;font-size:1.3rem;border-color:var(--gold); box-shadow:0 0 20px rgba(245,200,66,0.4); }
+  .podium-2 .podium-avatar { width:52px;height:52px;border-color:#c0c0c0; }
+  .podium-3 .podium-avatar { width:46px;height:46px;border-color:#cd7f32; }
+  .podium-name { font-size:0.78rem; font-weight:700; text-align:center; }
+  .podium-pts { font-size:1.1rem; font-weight:800; color:var(--gold); }
+  .podium-medal { font-size:1.4rem; }
+  .podium-bar {
+    width:100%; border-radius:8px 8px 0 0;
+    background:linear-gradient(180deg,rgba(37,99,235,0.3),rgba(37,99,235,0.1));
+    border:1px solid rgba(37,99,235,0.2); border-bottom:none;
+  }
+  .podium-1 .podium-bar { height:70px; background:linear-gradient(180deg,rgba(245,200,66,0.25),rgba(245,200,66,0.05)); border-color:rgba(245,200,66,0.3); }
+  .podium-2 .podium-bar { height:50px; }
+  .podium-3 .podium-bar { height:35px; }
+
+  .standings-list { display:flex;flex-direction:column;gap:6px;margin-bottom:24px; }
+  .standing-row {
+    background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:12px 14px;display:flex;align-items:center;gap:12px;
+    transition:border-color 0.18s;
+  }
+  .standing-row:hover{border-color:#253d60;}
+  .rank-num { font-size:0.9rem;font-weight:800;color:var(--muted);width:20px;text-align:center; }
+  .st-avatar {
+    width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-weight:800;color:#fff;font-size:0.9rem;flex-shrink:0;
+  }
+  .st-name { flex:1;font-size:0.95rem;font-weight:700; }
+  .st-chips { display:flex;gap:5px;align-items:center; }
+  .chip { font-size:0.62rem;font-weight:800;padding:2px 6px;border-radius:8px; }
+  .c3{background:rgba(34,197,94,0.15);color:var(--green);}
+  .c2{background:rgba(245,200,66,0.15);color:var(--gold);}
+  .c1{background:rgba(249,115,22,0.15);color:var(--orange);}
+  .st-pts { font-size:1.2rem;font-weight:800;color:var(--gold);min-width:44px;text-align:right; }
+
+  /* MATCHES TAB */
+  #tabMatches{display:none;}
+  .day-label {
+    font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;
+    color:var(--muted);margin:16px 0 8px;padding:0 4px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .day-label::after{content:'';flex:1;height:1px;background:var(--border);}
+  .match-block { background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:8px;overflow:hidden; }
+  .match-head { display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border); }
+  .grp-tag { font-size:0.62rem;font-weight:800;padding:2px 7px;border-radius:6px;background:rgba(245,200,66,0.12);color:var(--gold); }
+  .match-teams-str { flex:1;font-size:0.9rem;font-weight:700; }
+  .match-time-str { font-size:0.68rem;color:var(--muted); }
+  .result-box {
+    font-size:1rem;font-weight:800;background:#080f1d;
+    padding:4px 12px;border-radius:8px;border:1px solid var(--border);
+    min-width:52px;text-align:center;
+  }
+  .result-box.tbd { color:var(--muted);font-size:0.82rem;border-color:transparent;background:transparent; }
+  .tips-grid { display:flex;flex-wrap:wrap;gap:5px;padding:8px 12px 10px; }
+  .tip-item {
+    display:flex;align-items:center;gap:5px;
+    background:#080f1d;border:1px solid var(--border);
+    border-radius:9px;padding:4px 8px;
+  }
+  .tip-avatar {
+    width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:0.55rem;font-weight:800;color:#fff;flex-shrink:0;
+  }
+  .tip-score { font-size:0.8rem;font-weight:700; }
+  .tip-score.hidden { color:var(--muted);font-style:italic;font-weight:400; }
+  .tip-pts-badge { font-size:0.62rem;font-weight:800;padding:1px 5px;border-radius:6px; }
+  .tp3{background:rgba(34,197,94,0.15);color:var(--green);}
+  .tp2{background:rgba(245,200,66,0.15);color:var(--gold);}
+  .tp1{background:rgba(249,115,22,0.15);color:var(--orange);}
+  .tp0{background:rgba(239,68,68,0.12);color:var(--red);}
+
+  #loading{text-align:center;padding:60px 20px;color:var(--muted);}
+  .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
+  @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
+
 <header>
-  <a href="../" class="back">←</a>
-  <h1>📊 Dashboard &amp; Rangliste</h1>
-  <div class="live-dot" title="Live"></div>
+  <div class="header-inner">
+    <a href="../" class="back">←</a>
+    <div class="header-text">
+      <div class="header-title">⚽ WM 2026 Dashboard</div>
+      <div class="header-sub">Familie Voigt · Tippspiel</div>
+    </div>
+    <div class="live-pill"><div class="live-dot"></div>Live</div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="showTab('standings')">🏆 Rangliste</div>
+    <div class="tab" onclick="showTab('matches')">⚽ Spiele</div>
+  </div>
 </header>
 
 <main>
   <div id="loading"><div class="spinner"></div>Lade Daten…</div>
   <div id="content" style="display:none">
-    <div class="section-title">🏆 Rangliste</div>
-    <div class="standings" id="standings"></div>
-
-    <div class="section-title" style="margin-top:28px">⚽ Alle Spiele</div>
-    <div id="matchList"></div>
+    <div id="tabStandings"></div>
+    <div id="tabMatches"></div>
   </div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL = 'https://mfqsjhrdjncviebqezls.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_vccXpqiZfjyH099V0Ua-Qg_k8dhJ3Vg';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const PARTICIPANTS = ['Nolan','Leonie','Anna','Georg','Ester','Snezhana','Oliver'];
+const SUPABASE_URL='https://mfqsjhrdjncviebqezls.supabase.co';
+const SUPABASE_KEY='sb_publishable_vccXpqiZfjyH099V0Ua-Qg_k8dhJ3Vg';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const PARTICIPANTS=['Nolan','Leonie','Anna','Georg','Ester','Snezhana','Oliver'];
+const COLORS={Nolan:'#2563eb',Leonie:'#db2777',Anna:'#0891b2',Georg:'#d97706',Ester:'#059669',Snezhana:'#7c3aed',Oliver:'#f59e0b'};
 
-function calcPoints(tip, result) {
-  if (!tip || !result) return null;
-  const [th, ta] = tip.split(':').map(Number);
-  const [rh, ra] = result.split(':').map(Number);
-  if ([th,ta,rh,ra].some(isNaN)) return null;
-  if (th === rh && ta === ra) return 3;
-  if (th - ta === rh - ra) return 2;
-  if (Math.sign(th - ta) === Math.sign(rh - ra)) return 1;
+function calcPoints(tip,result){
+  if(!tip||!result)return null;
+  const[th,ta]=tip.split(':').map(Number);
+  const[rh,ra]=result.split(':').map(Number);
+  if([th,ta,rh,ra].some(isNaN))return null;
+  if(th===rh&&ta===ra)return 3;
+  if(th-ta===rh-ra)return 2;
+  if(Math.sign(th-ta)===Math.sign(rh-ra))return 1;
   return 0;
 }
-
-function fmtKickoff(utc) {
-  return new Date(utc).toLocaleString('de-DE', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Berlin'}) + ' Uhr';
+function fmtTime(utc){
+  return new Date(utc).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Berlin'})+' Uhr';
 }
 
-let matches = [], allTips = [];
+let matches=[],allTips=[],activeTab='standings';
 
-async function load() {
-  const [mRes, tRes] = await Promise.all([
+function showTab(tab){
+  activeTab=tab;
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',(tab==='standings'&&i===0)||(tab==='matches'&&i===1)));
+  document.getElementById('tabStandings').style.display=tab==='standings'?'block':'none';
+  document.getElementById('tabMatches').style.display=tab==='matches'?'block':'none';
+}
+
+async function load(){
+  const[mRes,tRes]=await Promise.all([
     sb.from('matches').select('*').order('kickoff_utc'),
     sb.from('tips').select('*')
   ]);
-  matches = mRes.data || [];
-  allTips = tRes.data || [];
+  matches=mRes.data||[];
+  allTips=tRes.data||[];
   render();
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('content').style.display = 'block';
+  document.getElementById('loading').style.display='none';
+  document.getElementById('content').style.display='block';
+  showTab('standings');
 }
 
-function render() {
-  const now = new Date();
+function render(){
+  const now=new Date();
+  const tipMap={};
+  allTips.forEach(t=>{if(!tipMap[t.match_id])tipMap[t.match_id]={};tipMap[t.match_id][t.participant]=t.tip;});
 
-  // Build tip lookup: match_id -> participant -> tip
-  const tipMap = {};
-  allTips.forEach(t => {
-    if (!tipMap[t.match_id]) tipMap[t.match_id] = {};
-    tipMap[t.match_id][t.participant] = t.tip;
-  });
-
-  // Standings
-  const scores = {};
-  const breakdown = {};
-  PARTICIPANTS.forEach(p => { scores[p] = 0; breakdown[p] = {3:0,2:0,1:0}; });
-
-  matches.forEach(m => {
-    if (!m.result) return;
-    const started = new Date(m.kickoff_utc) <= now;
-    if (!started) return;
-    PARTICIPANTS.forEach(p => {
-      const tip = tipMap[m.id]?.[p];
-      const pts = calcPoints(tip, m.result);
-      if (pts !== null) {
-        scores[p] += pts;
-        if (pts > 0) breakdown[p][pts] = (breakdown[p][pts]||0) + 1;
-      }
+  // Scores
+  const scores={},bd={};
+  PARTICIPANTS.forEach(p=>{scores[p]=0;bd[p]={3:0,2:0,1:0};});
+  matches.forEach(m=>{
+    if(!m.result||new Date(m.kickoff_utc)>now)return;
+    PARTICIPANTS.forEach(p=>{
+      const pts=calcPoints(tipMap[m.id]?.[p],m.result);
+      if(pts!==null){scores[p]+=pts;if(pts>0)bd[p][pts]=(bd[p][pts]||0)+1;}
     });
   });
+  const ranked=[...PARTICIPANTS].sort((a,b)=>scores[b]-scores[a]);
 
-  const ranked = [...PARTICIPANTS].sort((a,b) => scores[b]-scores[a]);
-  document.getElementById('standings').innerHTML = ranked.map((p, i) => {
-    const rank = i + 1;
-    const rankHtml = rank <= 3 ? `<div class="rank"></div>` : `<div class="rank rank-n">${rank}</div>`;
-    const bd = breakdown[p];
-    return `<div class="standing-row rank-${rank<=3?rank:'n'}">
-      ${rankHtml}
-      <div class="name">${p}</div>
-      <div class="breakdown">
-        ${bd[3]>0?`<span class="chip chip-3">✓✓✓ ×${bd[3]}</span>`:''}
-        ${bd[2]>0?`<span class="chip chip-2">✓✓ ×${bd[2]}</span>`:''}
-        ${bd[1]>0?`<span class="chip chip-1">✓ ×${bd[1]}</span>`:''}
-      </div>
-      <div class="pts">${scores[p]}<span class="pts-label">Pkt</span></div>
+  // STANDINGS TAB
+  const top3=ranked.slice(0,3);
+  const order=[top3[1],top3[0],top3[2]].filter(Boolean); // silver, gold, bronze
+  const heights=[50,70,35];
+  const medals=['🥈','🥇','🥉'];
+  const podiumHtml=`<div class="podium">${order.map((p,i)=>{
+    const rank=ranked.indexOf(p);
+    return`<div class="podium-item podium-${rank+1}">
+      <div class="podium-medal">${medals[i]}</div>
+      <div class="podium-pts">${scores[p]}</div>
+      <div class="podium-avatar" style="width:${i===1?60:i===0?52:46}px;height:${i===1?60:i===0?52:46}px;background:${COLORS[p]};border:3px solid ${i===1?'#f5c842':i===0?'#c0c0c0':'#cd7f32'};">${p[0]}</div>
+      <div class="podium-name">${p}</div>
+      <div class="podium-bar" style="height:${heights[i]}px"></div>
     </div>`;
-  }).join('');
+  }).join('')}</div>`;
 
-  // Match list
-  const byDate = {};
-  matches.forEach(m => (byDate[m.match_date] = byDate[m.match_date] || []).push(m));
+  const listHtml=ranked.map((p,i)=>`
+    <div class="standing-row">
+      <div class="rank-num">${i+1}</div>
+      <div class="st-avatar" style="background:${COLORS[p]}">${p[0]}</div>
+      <div class="st-name">${p}</div>
+      <div class="st-chips">
+        ${bd[p][3]>0?`<span class="chip c3">✓✓✓×${bd[p][3]}</span>`:''}
+        ${bd[p][2]>0?`<span class="chip c2">✓✓×${bd[p][2]}</span>`:''}
+        ${bd[p][1]>0?`<span class="chip c1">✓×${bd[p][1]}</span>`:''}
+      </div>
+      <div class="st-pts">${scores[p]}</div>
+    </div>`).join('');
 
-  document.getElementById('matchList').innerHTML = Object.entries(byDate).map(([date, ms]) => {
-    const rows = ms.map(m => {
-      const started = new Date(m.kickoff_utc) <= now;
-      const resultHtml = m.result
-        ? `<div class="result-badge">${m.result}</div>`
-        : `<div class="result-badge tbd">${started?'läuft':'–:–'}</div>`;
+  document.getElementById('tabStandings').innerHTML=podiumHtml+`<div class="standings-list">${listHtml}</div>`;
 
-      const tipsHtml = PARTICIPANTS.map(p => {
-        const tip = tipMap[m.id]?.[p];
-        if (!started) {
-          return `<div class="tip-chip"><span class="tip-name">${p}</span><span class="tip-val no-tip">?</span></div>`;
-        }
-        if (!tip) return `<div class="tip-chip"><span class="tip-name">${p}</span><span class="tip-val no-tip">–</span></div>`;
-        const pts = calcPoints(tip, m.result);
-        const ptsHtml = pts !== null ? `<span class="tip-pts p${pts}">${pts}</span>` : '';
-        return `<div class="tip-chip"><span class="tip-name">${p}</span><span class="tip-val">${tip}</span>${ptsHtml}</div>`;
+  // MATCHES TAB
+  const byDate={};
+  matches.forEach(m=>(byDate[m.match_date]=byDate[m.match_date]||[]).push(m));
+  const matchesHtml=Object.entries(byDate).map(([date,ms])=>{
+    const rows=ms.map(m=>{
+      const started=new Date(m.kickoff_utc)<=now;
+      const resultHtml=m.result
+        ?`<div class="result-box">${m.result}</div>`
+        :`<div class="result-box tbd">${started?'läuft':'–:–'}</div>`;
+      const tipsHtml=PARTICIPANTS.map(p=>{
+        const tip=tipMap[m.id]?.[p];
+        const pts=calcPoints(tip,m.result);
+        const scoreStr=!started?'?':tip||'–';
+        const hidden=!started||!tip;
+        const ptsBadge=pts!==null&&!hidden?`<span class="tip-pts-badge tp${pts}">${pts}</span>`:'';
+        return`<div class="tip-item">
+          <div class="tip-avatar" style="background:${COLORS[p]}">${p[0]}</div>
+          <span class="tip-score${hidden?' hidden':''}">${scoreStr}</span>
+          ${ptsBadge}
+        </div>`;
       }).join('');
-
-      return `<div class="match-row">
-        <div class="match-header">
-          <span class="group-tag">Gr.${m.group_name}</span>
-          <span class="teams">${m.home} – ${m.away}</span>
+      return`<div class="match-block">
+        <div class="match-head">
+          <span class="grp-tag">GR.${m.group_name}</span>
+          <span class="match-teams-str">${m.home} – ${m.away}</span>
           ${resultHtml}
         </div>
-        <div class="tips-row">${tipsHtml}</div>
+        <div class="tips-grid">${tipsHtml}</div>
       </div>`;
     }).join('');
-
-    return `<div class="match-section">
-      <div class="day-header">📅 ${date.replace('.','')} Juni</div>
-      ${rows}
-    </div>`;
+    return`<div class="day-label">📅 ${date.replace('.','')} Juni 2026</div>${rows}`;
   }).join('');
+  document.getElementById('tabMatches').innerHTML=matchesHtml;
 }
 
 // Live updates
 sb.channel('dashboard')
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'matches' }, payload => {
-    const m = matches.find(x => x.id === payload.new.id);
-    if (m) m.result = payload.new.result;
-    render();
-  })
-  .on('postgres_changes', { event: '*', schema: 'public', table: 'tips' }, payload => {
-    const existing = allTips.findIndex(t => t.id === payload.new.id);
-    if (existing >= 0) allTips[existing] = payload.new;
-    else allTips.push(payload.new);
-    render();
-  })
+  .on('postgres_changes',{event:'*',schema:'public',table:'matches'},p=>{const m=matches.find(x=>x.id===p.new.id);if(m)m.result=p.new.result;render();})
+  .on('postgres_changes',{event:'*',schema:'public',table:'tips'},p=>{const i=allTips.findIndex(t=>t.id===p.new.id);if(i>=0)allTips[i]=p.new;else allTips.push(p.new);render();})
   .subscribe();
 
 load();
