@@ -57,16 +57,22 @@
   /* STANDINGS */
   #tabStandings{}
   .podium { display:flex; align-items:flex-end; justify-content:center; gap:10px; margin:8px 0 20px; }
-  .podium-item { display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; max-width:110px; }
+  .podium-item { display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; min-width:0; }
+  .podium-avatars { display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .podium-names { display:flex; flex-direction:column; align-items:center; gap:1px; }
   .podium-avatar {
     border-radius:50%; display:flex; align-items:center; justify-content:center;
-    font-weight:800; color:#fff; font-size:1.1rem; flex-shrink:0;
+    font-weight:800; color:#fff; flex-shrink:0;
     border:3px solid transparent;
   }
   .podium-1 .podium-avatar { width:60px;height:60px;font-size:1.3rem;border-color:var(--gold); box-shadow:0 0 20px rgba(245,200,66,0.4); }
-  .podium-2 .podium-avatar { width:52px;height:52px;border-color:#c0c0c0; }
-  .podium-3 .podium-avatar { width:46px;height:46px;border-color:#cd7f32; }
+  .podium-1 .podium-avatar.small { width:42px;height:42px;font-size:1rem; }
+  .podium-2 .podium-avatar { width:52px;height:52px;font-size:1.1rem;border-color:#c0c0c0; }
+  .podium-2 .podium-avatar.small { width:36px;height:36px;font-size:0.9rem; }
+  .podium-3 .podium-avatar { width:46px;height:46px;font-size:1rem;border-color:#cd7f32; }
+  .podium-3 .podium-avatar.small { width:32px;height:32px;font-size:0.82rem; }
   .podium-name { font-size:0.78rem; font-weight:700; text-align:center; }
+  .podium-name.small { font-size:0.68rem; }
   .podium-pts { font-size:1.1rem; font-weight:800; color:var(--gold); }
   .podium-medal { font-size:1.4rem; }
   .podium-bar {
@@ -243,19 +249,27 @@ function render(){
     else{rankOf[p]=rankOf[ranked[i-1]];}
   });
 
-  // STANDINGS TAB
-  const top3=ranked.slice(0,3);
-  const order=[top3[1],top3[0],top3[2]].filter(Boolean); // silver, gold, bronze
-  const heights=[50,70,35];
-  const medals=['🥈','🥇','🥉'];
-  const podiumHtml=`<div class="podium">${order.map((p,i)=>{
-    const rank=rankOf[p];
+  // STANDINGS TAB — podium with tie support
+  const rankGroups={};
+  ranked.forEach(p=>{const r=rankOf[p];if(r<=3)(rankGroups[r]=rankGroups[r]||[]).push(p);});
+
+  const podiumSlots=[
+    {rank:2,medal:'🥈',barH:50},
+    {rank:1,medal:'🥇',barH:70},
+    {rank:3,medal:'🥉',barH:35},
+  ];
+  const podiumHtml=`<div class="podium">${podiumSlots.map(({rank,medal,barH})=>{
+    const group=rankGroups[rank]||[];
+    if(!group.length)return'';
+    const small=group.length>1;
+    const avatarsHtml=group.map(p=>`<div class="podium-avatar${small?' small':''}" style="background:${COLORS[p]}">${p[0]}</div>`).join('');
+    const namesHtml=group.map(p=>`<div class="podium-name${small?' small':''}">${p}</div>`).join('');
     return`<div class="podium-item podium-${rank}">
-      <div class="podium-medal">${medals[i]}</div>
-      <div class="podium-pts">${scores[p]}</div>
-      <div class="podium-avatar" style="width:${i===1?60:i===0?52:46}px;height:${i===1?60:i===0?52:46}px;background:${COLORS[p]};border:3px solid ${i===1?'#f5c842':i===0?'#c0c0c0':'#cd7f32'};">${p[0]}</div>
-      <div class="podium-name">${p}</div>
-      <div class="podium-bar" style="height:${heights[i]}px"></div>
+      <div class="podium-medal">${medal}</div>
+      <div class="podium-pts">${scores[group[0]]}</div>
+      <div class="podium-avatars">${avatarsHtml}</div>
+      <div class="podium-names">${namesHtml}</div>
+      <div class="podium-bar"></div>
     </div>`;
   }).join('')}</div>`;
 
