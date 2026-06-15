@@ -236,14 +236,21 @@ function render(){
   });
   const ranked=[...PARTICIPANTS].sort((a,b)=>scores[b]-scores[a]);
 
+  // Assign ranks with ties (same score = same rank)
+  const rankOf={};
+  ranked.forEach((p,i)=>{
+    if(i===0||scores[p]<scores[ranked[i-1]]){rankOf[p]=i+1;}
+    else{rankOf[p]=rankOf[ranked[i-1]];}
+  });
+
   // STANDINGS TAB
   const top3=ranked.slice(0,3);
   const order=[top3[1],top3[0],top3[2]].filter(Boolean); // silver, gold, bronze
   const heights=[50,70,35];
   const medals=['🥈','🥇','🥉'];
   const podiumHtml=`<div class="podium">${order.map((p,i)=>{
-    const rank=ranked.indexOf(p);
-    return`<div class="podium-item podium-${rank+1}">
+    const rank=rankOf[p];
+    return`<div class="podium-item podium-${rank}">
       <div class="podium-medal">${medals[i]}</div>
       <div class="podium-pts">${scores[p]}</div>
       <div class="podium-avatar" style="width:${i===1?60:i===0?52:46}px;height:${i===1?60:i===0?52:46}px;background:${COLORS[p]};border:3px solid ${i===1?'#f5c842':i===0?'#c0c0c0':'#cd7f32'};">${p[0]}</div>
@@ -254,7 +261,7 @@ function render(){
 
   const listHtml=ranked.map((p,i)=>`
     <div class="standing-row">
-      <div class="rank-num">${i+1}</div>
+      <div class="rank-num">${rankOf[p]}.</div>
       <div class="st-avatar" style="background:${COLORS[p]}">${p[0]}</div>
       <div class="st-name">${p}</div>
       <div class="st-chips">
