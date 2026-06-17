@@ -303,8 +303,10 @@ function render() {
   matches.forEach(m => (byDate[m.match_date]=byDate[m.match_date]||[]).push(m));
 
   const html = Object.entries(byDate).map(([date, ms]) => {
-    const rows = ms.map(m => {
-      const locked = new Date(m.kickoff_utc) <= now;
+    const open = ms.filter(m => new Date(m.kickoff_utc) > now);
+    if (!open.length) return '';
+    const rows = open.map(m => {
+      const locked = false;
       const tip = tips[m.id]||'';
       const [th='',ta=''] = tip ? tip.split(':') : ['',''];
       const pts = calcPoints(tip, m.result);
