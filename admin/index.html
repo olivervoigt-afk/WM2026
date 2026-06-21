@@ -193,10 +193,19 @@ function renderMatches(){
   document.getElementById('statDone').textContent=done.length;
   document.getElementById('statOpen').textContent=played.length-done.length;
 
+  const cutoff=new Date(now.getTime()-24*60*60*1000);
+  const showOld=window._showOldMatches||false;
+  const visible=showOld?matches:matches.filter(m=>new Date(m.kickoff_utc)>=cutoff);
+  const hiddenCount=matches.length-visible.length;
   const byDate={};
-  matches.forEach(m=>(byDate[m.match_date]=byDate[m.match_date]||[]).push(m));
+  visible.forEach(m=>(byDate[m.match_date]=byDate[m.match_date]||[]).push(m));
 
-  document.getElementById('matchList').innerHTML=Object.entries(byDate).map(([date,ms])=>{
+  const toggleHtml=hiddenCount>0&&!showOld
+    ?`<div style="text-align:center;margin-bottom:14px"><button onclick="window._showOldMatches=true;renderMatches()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--muted);font-size:0.8rem;font-weight:600;padding:8px 18px;border-radius:20px;cursor:pointer;font-family:inherit">🕓 ${hiddenCount} ältere Spiele einblenden</button></div>`
+    :showOld?`<div style="text-align:center;margin-bottom:14px"><button onclick="window._showOldMatches=false;renderMatches()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--muted);font-size:0.8rem;font-weight:600;padding:8px 18px;border-radius:20px;cursor:pointer;font-family:inherit">✕ Alte Spiele ausblenden</button></div>`
+    :'';
+
+  document.getElementById('matchList').innerHTML=toggleHtml+Object.entries(byDate).map(([date,ms])=>{
     const rows=ms.map(m=>{
       const started=new Date(m.kickoff_utc)<=now;
       const[rh='',ra='']=m.result?m.result.split(':'):['',''];
