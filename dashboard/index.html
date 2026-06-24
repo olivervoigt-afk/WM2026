@@ -363,9 +363,14 @@ function render(){
           ${ptsBadge}
         </div>`;
       }).join('');
+      const kickoffStr=new Date(m.kickoff_utc).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Berlin'})+' Uhr';
+      const leftTag=!started&&!isLive
+        ?`<span class="grp-tag">${kickoffStr}</span>`
+        :isLive?''
+        :`<span class="grp-tag">GR.${m.group_name}</span>`;
       return`<div class="match-block${isLive?' is-live':''}">
         <div class="match-head">
-          <span class="grp-tag">GR.${m.group_name}</span>
+          ${leftTag}
           <span class="match-teams-str">${m.home} – ${m.away}</span>
           ${liveBadgeHtml}
           ${resultHtml}
