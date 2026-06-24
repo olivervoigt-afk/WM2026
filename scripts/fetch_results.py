@@ -109,6 +109,34 @@ def main():
     db_matches = sb_get("matches?select=id,home,away,kickoff_utc,result,live_score,live_status&order=kickoff_utc")
     db_index = {(m["home"], m["away"]): m for m in db_matches}
 
+    # --- 0. KO-TEAMS AUTOMATISCH BEFÜLLEN (wenn noch '?') ---
+    placeholder_matches = [m for m in db_matches if m["home"] == "?" and m["away"] == "?"]
+    if placeholder_matches:
+        try:
+            ko_api = fetch_api_matches("SCHEDULED", "TIMED")
+            ko_stages = {"LAST_32", "LAST_16", "QUARTER_FINALS", "SEMI_FINALS", "THIRD_PLACE", "FINAL"}
+            # Index: kickoff_utc → DB-Match
+            kt_index = {m["kickoff_utc"][:16]: m for m in placeholder_matches}
+            for api_m in ko_api:
+                if api_m.get("stage") not in ko_stages:
+                    continue
+                home_en = api_m.get("homeTeam", {}).get("name")
+                away_en = api_m.get("awayTeam", {}).get("name")
+                if not home_en or not away_en:
+                    continue
+                home_de = TEAM_MAP.get(home_en, home_en)
+                away_de = TEAM_MAP.get(away_en, away_en)
+                kt = api_m["utcDate"][:16]
+                db_m = kt_index.get(kt)
+                if db_m:
+                    print(f"🔄 KO-Teams: {home_de} – {away_de} ({kt} UTC)")
+                    sb_patch(f"matches?id=eq.{db_m['id']}", {"home": home_de, "away": away_de})
+                    # Index aktualisieren damit spätere Schritte das Spiel finden
+                    db_index[(home_de, away_de)] = {**db_m, "home": home_de, "away": away_de}
+                    del db_index[("?", "?")]
+        except Exception as e:
+            print(f"Hinweis KO-Teams: {e}", file=sys.stderr)
+
     # --- 1. LAUFENDE SPIELE (IN_PLAY, HALF_TIME, PAUSED, EXTRA_TIME, PENALTY) ---
     try:
         live_api = fetch_api_matches("IN_PLAY", "HALF_TIME", "PAUSED", "EXTRA_TIME", "PENALTY")
