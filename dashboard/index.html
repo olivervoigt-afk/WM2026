@@ -327,8 +327,9 @@ function render(){
   const showOld=window._showOldMatches||false;
   const visibleMatches=showOld?matches:matches.filter(m=>new Date(m.kickoff_utc)>=cutoff);
   const hiddenCount=matches.length-visibleMatches.length;
+  const localDateKey=utc=>new Date(utc).toLocaleDateString('sv-SE',{timeZone:'Europe/Berlin'});
   const byDate={};
-  visibleMatches.forEach(m=>(byDate[m.match_date]=byDate[m.match_date]||[]).push(m));
+  visibleMatches.forEach(m=>{const k=localDateKey(m.kickoff_utc);(byDate[k]=byDate[k]||[]).push(m);});
   const toggleHtml=hiddenCount>0&&!showOld
     ?`<div style="text-align:center;margin-bottom:14px"><button onclick="window._showOldMatches=true;render()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--muted);font-size:0.8rem;font-weight:600;padding:8px 18px;border-radius:20px;cursor:pointer;font-family:inherit">🕓 ${hiddenCount} ältere Spiele einblenden</button></div>`
     :showOld?`<div style="text-align:center;margin-bottom:14px"><button onclick="window._showOldMatches=false;render()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--muted);font-size:0.8rem;font-weight:600;padding:8px 18px;border-radius:20px;cursor:pointer;font-family:inherit">✕ Alte Spiele ausblenden</button></div>`
@@ -378,7 +379,9 @@ function render(){
         ${hintHtml}<div class="tips-grid">${tipsHtml}</div>
       </div>`;
     }).join('');
-    return`<div class="day-label">📅 ${date.split('.')[0]}. Juni 2026</div>${rows}`;
+    const dateObj=new Date(date+'T12:00:00');
+    const dayLabel=dateObj.toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'});
+    return`<div class="day-label">📅 ${dayLabel}</div>${rows}`;
   }).join('');
   document.getElementById('tabMatches').innerHTML=matchesHtml;
 

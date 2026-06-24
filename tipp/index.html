@@ -298,8 +298,9 @@ async function load() {
 
 function render() {
   const now = new Date();
+  const localDateKey=utc=>new Date(utc).toLocaleDateString('sv-SE',{timeZone:'Europe/Berlin'});
   const byDate = {};
-  matches.forEach(m => (byDate[m.match_date]=byDate[m.match_date]||[]).push(m));
+  matches.forEach(m => {const k=localDateKey(m.kickoff_utc);(byDate[k]=byDate[k]||[]).push(m);});
 
   const html = Object.entries(byDate).map(([date, ms]) => {
     const open = ms.filter(m => new Date(m.kickoff_utc) > now && m.home !== '?' && m.away !== '?');
@@ -339,7 +340,7 @@ function render() {
       </div>`;
     }).join('');
     return `<div class="day-group">
-      <div class="day-label">📅 ${date.split('.')[0]}. Juni 2026</div>
+      <div class="day-label">📅 ${new Date(date+'T12:00:00').toLocaleDateString('de-DE',{day:'numeric',month:'long',year:'numeric'})}</div>
       ${rows}
     </div>`;
   }).join('');
