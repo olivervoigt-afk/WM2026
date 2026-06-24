@@ -20,9 +20,13 @@ jobs:
       - name: Abhängigkeiten installieren
         run: pip install requests
 
-      - name: Ergebnisse abrufen und eintragen
+      - name: Ergebnisse abrufen und eintragen (alle 10 Sek.)
         env:
           FOOTBALL_API_KEY: ${{ secrets.FOOTBALL_API_KEY }}
           SUPABASE_URL: https://mfqsjhrdjncviebqezls.supabase.co
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
-        run: python scripts/fetch_results.py
+        run: |
+          for i in {1..6}; do
+            python scripts/fetch_results.py
+            if [ $i -lt 6 ]; then sleep 10; fi
+          done
