@@ -1,0 +1,30 @@
+name: Tipp-Erinnerung via WhatsApp
+
+on:
+  schedule:
+    # Täglich um 17:00 Uhr MESZ (= 15:00 UTC)
+    - cron: '0 15 * * *'
+  workflow_dispatch: # Manueller Start zum Testen
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Abhängigkeiten installieren
+        run: pip install requests
+
+      - name: Erinnerungen senden
+        env:
+          TWILIO_SID:            ${{ secrets.TWILIO_SID }}
+          TWILIO_TOKEN:          ${{ secrets.TWILIO_TOKEN }}
+          TWILIO_WHATSAPP_FROM:  ${{ secrets.TWILIO_WHATSAPP_FROM }}
+          SUPABASE_URL:          https://mfqsjhrdjncviebqezls.supabase.co
+          SUPABASE_KEY:          ${{ secrets.SUPABASE_KEY }}
+        run: python scripts/send_reminders.py
