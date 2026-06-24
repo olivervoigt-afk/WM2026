@@ -203,7 +203,7 @@
       <div class="header-name">⚽ <span id="participantName">…</span>s Tipps</div>
       <div class="header-sub">WM 2026 · Familie Voigt</div>
     </div>
-    <div class="pts-badge" id="totalPts">0 Pkt</div>
+    <a href="../dashboard/" class="pts-badge" style="text-decoration:none">🏆 Rangliste</a>
   </div>
   <div class="info-strip">
     <span>🔒 Gesperrt nach Anstoß</span>
@@ -219,10 +219,10 @@
 
 <div class="bottom-bar">
   <div>
-    <div class="label">Gesamtpunkte</div>
-    <div class="sub" id="ptsBreakdown"></div>
+    <div class="label">Rangliste &amp; Punkte</div>
+    <div class="sub">Vergleich mit allen Teilnehmern</div>
   </div>
-  <div class="total" id="totalPtsBottom">0</div>
+  <a href="../dashboard/" class="total" style="text-decoration:none;cursor:pointer">→</a>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -298,14 +298,6 @@ async function load() {
 
 function render() {
   const now = new Date();
-  let total=0, c3=0, c2=0, c1=0;
-
-  // Gesamtpunkte aus ALLEN Spielen (inkl. vergangene)
-  matches.forEach(m => {
-    const pts = calcPoints(tips[m.id]||'', m.result);
-    if (pts===3){total+=3;c3++;}else if(pts===2){total+=2;c2++;}else if(pts===1){total+=1;c1++;}
-  });
-
   const byDate = {};
   matches.forEach(m => (byDate[m.match_date]=byDate[m.match_date]||[]).push(m));
 
@@ -354,9 +346,6 @@ function render() {
 
   document.getElementById('loading').style.display='none';
   document.getElementById('matchList').innerHTML=html;
-  document.getElementById('totalPts').textContent=total+' Pkt';
-  document.getElementById('totalPtsBottom').textContent=total;
-  document.getElementById('ptsBreakdown').textContent=`✓✓✓×${c3}  ✓✓×${c2}  ✓×${c1}`;
 
   document.querySelectorAll('.score-inputs input').forEach(inp => {
     inp.addEventListener('input', onInput);
@@ -385,18 +374,10 @@ async function saveTip(id, tip) {
     {onConflict:'match_id,participant'}
   );
   if (error) { setDot(id,'error','❌ Fehler'); }
-  else { setDot(id,'saved','✓ Gespeichert'); setTimeout(()=>setDot(id,'',''),2500); updateTotal(); }
+  else { setDot(id,'saved','✓ Gespeichert'); setTimeout(()=>setDot(id,'',''),2500); }
 }
 
 function updateTotal() {
-  let total=0,c3=0,c2=0,c1=0;
-  matches.forEach(m => {
-    const pts=calcPoints(tips[m.id],m.result);
-    if(pts===3){total+=3;c3++;}else if(pts===2){total+=2;c2++;}else if(pts===1){total+=1;c1++;}
-  });
-  document.getElementById('totalPts').textContent=total+' Pkt';
-  document.getElementById('totalPtsBottom').textContent=total;
-  document.getElementById('ptsBreakdown').textContent=`✓✓✓×${c3}  ✓✓×${c2}  ✓×${c1}`;
 }
 
 sb.channel('results').on('postgres_changes',{event:'UPDATE',schema:'public',table:'matches'},payload=>{
