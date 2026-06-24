@@ -503,11 +503,28 @@ function renderChart(){
   });
 }
 
-// Live updates
+// Live updates via Realtime
 sb.channel('dashboard')
   .on('postgres_changes',{event:'*',schema:'public',table:'matches'},p=>{const m=matches.find(x=>x.id===p.new.id);if(m){m.result=p.new.result;m.live_score=p.new.live_score;m.live_status=p.new.live_status;}render();})
   .on('postgres_changes',{event:'*',schema:'public',table:'tips'},p=>{const i=allTips.findIndex(t=>t.id===p.new.id);if(i>=0)allTips[i]=p.new;else allTips.push(p.new);render();})
   .subscribe();
+
+// Polling-Fallback: alle 15s Live-Daten neu laden wenn Spiele laufen
+async function pollLive(){
+  const hasLive=matches.some(m=>m.live_score&&!m.result);
+  if(!hasLive)return;
+  const{data}=await sb.from('matches').select('id,result,live_score,live_status').not('live_score','is',null);
+  if(!data)return;
+  let changed=false;
+  data.forEach(row=>{
+    const m=matches.find(x=>x.id===row.id);
+    if(m&&(m.live_score!==row.live_score||m.live_status!==row.live_status||m.result!==row.result)){
+      m.live_score=row.live_score;m.live_status=row.live_status;m.result=row.result;changed=true;
+    }
+  });
+  if(changed)render();
+}
+setInterval(pollLive,15000);
 
 load();
 </script>
