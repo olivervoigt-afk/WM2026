@@ -400,34 +400,38 @@ function renderChart(){
     return;
   }
 
-  // Build cumulative points after each match
-  const cumPts={};
-  PARTICIPANTS.forEach(p=>cumPts[p]=[0]);
+  // Group matches by date, build cumulative points per day
+  const byDate={};
   played.forEach(m=>{
-    PARTICIPANTS.forEach(p=>{
-      const prev=cumPts[p][cumPts[p].length-1];
-      const pts=calcPoints(tipMap[m.id]?.[p],m.result)??0;
-      cumPts[p].push(prev+pts);
-    });
+    const d=m.match_date||m.kickoff_utc.slice(0,10);
+    if(!byDate[d])byDate[d]=[];
+    byDate[d].push(m);
   });
+  const dates=Object.keys(byDate).sort();
 
-  // Convert cumulative points to rank at each step
-  const n=played.length+1;
+  const cumPts={};
+  PARTICIPANTS.forEach(p=>cumPts[p]=0);
   const rankHistory={};
   PARTICIPANTS.forEach(p=>rankHistory[p]=[]);
-  for(let i=0;i<n;i++){
-    const pts={};
-    PARTICIPANTS.forEach(p=>pts[p]=cumPts[p][i]);
-    const sorted=[...PARTICIPANTS].sort((a,b)=>pts[b]-pts[a]);
+  const labels=[];
+
+  dates.forEach(date=>{
+    byDate[date].forEach(m=>{
+      PARTICIPANTS.forEach(p=>{
+        cumPts[p]+=(calcPoints(tipMap[m.id]?.[p],m.result)??0);
+      });
+    });
+    // rank after this day
+    const sorted=[...PARTICIPANTS].sort((a,b)=>cumPts[b]-cumPts[a]);
     PARTICIPANTS.forEach(p=>{
       let rank=sorted.indexOf(p)+1;
-      // tie: same pts = same rank
-      if(rank>1&&pts[p]===pts[sorted[rank-2]])rank=rankHistory[sorted[rank-2]][i]??rank;
+      if(rank>1&&cumPts[p]===cumPts[sorted[rank-2]])rank=rankHistory[sorted[rank-2]][rankHistory[sorted[rank-2]].length-1]??rank;
       rankHistory[p].push(rank);
     });
-  }
-
-  const labels=['Start',...played.map(m=>`${m.home.slice(0,3)}–${m.away.slice(0,3)}`)];
+    // label: d.m format
+    const[y,mo,dy]=date.split('-');
+    labels.push(`${parseInt(dy)}.${parseInt(mo)}.`);
+  });
 
   const datasets=PARTICIPANTS.map(p=>({
     label:p,
@@ -471,10 +475,7 @@ function renderChart(){
           titleFont:{family:'Inter',weight:'700'},
           bodyFont:{family:'Inter'},
           callbacks:{
-            title:items=>{
-              const m=played[items[0].dataIndex-1];
-              return m?`${m.home} – ${m.away} (${m.result})`:'Start';
-            },
+            title:items=>labels[items[0].dataIndex]||'',
             label:item=>`${item.dataset.label}: Platz ${item.raw}`,
           }
         }
@@ -484,7 +485,7 @@ function renderChart(){
           ticks:{
             color:'#607090',font:{family:'Inter',size:9},
             maxRotation:45,
-            callback:(val,i)=>i===0?'Start':`Sp.${i}`,
+            callback:(val,i)=>labels[i]||'',
           },
           grid:{color:'rgba(26,47,80,0.6)'},
         },
