@@ -1,0 +1,28 @@
+name: Ergebnisse automatisch abrufen
+
+on:
+  schedule:
+    # Alle 5 Minuten während der Turnierphase (11. Juni – 28. Juni 2026)
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # Manueller Start jederzeit möglich
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python einrichten
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Abhängigkeiten installieren
+        run: pip install requests
+
+      - name: Ergebnisse abrufen und eintragen
+        env:
+          FOOTBALL_API_KEY: ${{ secrets.FOOTBALL_API_KEY }}
+          SUPABASE_URL: https://mfqsjhrdjncviebqezls.supabase.co
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python scripts/fetch_results.py
