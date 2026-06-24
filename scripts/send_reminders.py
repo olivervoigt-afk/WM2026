@@ -30,8 +30,8 @@ SB_HEADERS = {
     "Authorization": f"Bearer {SUPABASE_KEY}",
 }
 
-def sb_get(path):
-    r = requests.get(f"{SUPABASE_URL}/rest/v1/{path}", headers=SB_HEADERS, timeout=10)
+def sb_get(path, params=None):
+    r = requests.get(f"{SUPABASE_URL.rstrip('/')}/rest/v1/{path}", headers=SB_HEADERS, params=params, timeout=10)
     r.raise_for_status()
     return r.json()
 
@@ -53,14 +53,12 @@ def main():
     in_24h = now + timedelta(hours=24)
 
     # Spiele der nächsten 24h laden
-    now_z    = now.strftime("%Y-%m-%dT%H:%M:%SZ")
-    in_24h_z = in_24h.strftime("%Y-%m-%dT%H:%M:%SZ")
-    matches = sb_get(
-        f"matches?select=id,home,away,kickoff_utc"
-        f"&kickoff_utc=gt.{now_z}"
-        f"&kickoff_utc=lte.{in_24h_z}"
-        f"&order=kickoff_utc"
-    )
+    matches = sb_get("matches", params=[
+        ("select",      "id,home,away,kickoff_utc"),
+        ("kickoff_utc", f"gt.{now.isoformat()}"),
+        ("kickoff_utc", f"lte.{in_24h.isoformat()}"),
+        ("order",       "kickoff_utc"),
+    ])
 
     if not matches:
         print("Keine Spiele in den nächsten 24h.")
@@ -68,7 +66,10 @@ def main():
 
     # Alle Tipps für diese Spiele laden
     match_ids = ",".join(str(m["id"]) for m in matches)
-    tips = sb_get(f"tips?select=match_id,participant&match_id=in.({match_ids})")
+    tips = sb_get("tips", params={
+        "select":   "match_id,participant",
+        "match_id": f"in.({match_ids})",
+    })
     tipped = {(t["match_id"], t["participant"]) for t in tips}
 
     print(f"{len(matches)} Spiel(e) in den nächsten 24h:")
