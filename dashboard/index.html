@@ -335,7 +335,9 @@ function render(){
     :showOld?`<div style="text-align:center;margin-bottom:14px"><button onclick="window._showOldMatches=false;render()" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--muted);font-size:0.8rem;font-weight:600;padding:8px 18px;border-radius:20px;cursor:pointer;font-family:inherit">✕ Alte Spiele ausblenden</button></div>`
     :'';
   const matchesHtml=toggleHtml+Object.entries(byDate).map(([date,ms])=>{
-    const rows=ms.map(m=>{
+    const visible=ms.filter(m=>m.home!=='?'&&m.away!=='?');
+    if(!visible.length)return'';
+    const rows=visible.map(m=>{
       const started=new Date(m.kickoff_utc)<=now;
       const isLive=!m.result&&m.live_score;
       const resultHtml=m.result
