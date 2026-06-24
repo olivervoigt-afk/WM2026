@@ -428,9 +428,7 @@ function renderChart(){
       if(rank>1&&cumPts[p]===cumPts[sorted[rank-2]])rank=rankHistory[sorted[rank-2]][rankHistory[sorted[rank-2]].length-1]??rank;
       rankHistory[p].push(rank);
     });
-    // label: d.m format
-    const[y,mo,dy]=date.split('-');
-    labels.push(`${parseInt(dy)}.${parseInt(mo)}.`);
+    labels.push(date); // already in "11.06." format
   });
 
   const datasets=PARTICIPANTS.map(p=>({
