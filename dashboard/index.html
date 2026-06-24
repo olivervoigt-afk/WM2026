@@ -149,10 +149,30 @@
     font-size:0.65rem;color:var(--muted);font-weight:500;
   }
 
+  /* CHART TAB */
+  #tabChart{display:none;}
+  .chart-wrap {
+    background:var(--card);border:1px solid var(--border);border-radius:16px;
+    padding:16px 12px 12px;margin-top:8px;
+  }
+  .chart-title {
+    font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:2px;
+    color:var(--muted);margin-bottom:14px;
+  }
+  .chart-legend {
+    display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;
+  }
+  .legend-item {
+    display:flex;align-items:center;gap:5px;font-size:0.75rem;font-weight:700;
+  }
+  .legend-dot { width:10px;height:10px;border-radius:50%;flex-shrink:0; }
+  .chart-empty {
+    text-align:center;padding:40px 20px;color:var(--muted);font-size:0.88rem;
+  }
+
   #loading{text-align:center;padding:60px 20px;color:var(--muted);}
   .spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
   @keyframes spin{to{transform:rotate(360deg)}}
-
 </style>
 </head>
 <body>
@@ -169,6 +189,7 @@
   <div class="tabs">
     <div class="tab active" onclick="showTab('standings')">🏆 Rangliste</div>
     <div class="tab" onclick="showTab('matches')">⚽ Spiele</div>
+    <div class="tab" onclick="showTab('chart')">📈 Verlauf</div>
   </div>
 </header>
 
@@ -177,10 +198,12 @@
   <div id="content" style="display:none">
     <div id="tabStandings"></div>
     <div id="tabMatches"></div>
+    <div id="tabChart"></div>
   </div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 <script>
 const SUPABASE_URL='https://mfqsjhrdjncviebqezls.supabase.co';
 const SUPABASE_KEY='sb_publishable_vccXpqiZfjyH099V0Ua-Qg_k8dhJ3Vg';
@@ -188,6 +211,7 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const PARTICIPANTS=['Nolan','Leonie','Anna','Georg','Esther','Snezhana','Oliver'];
 const COLORS={Nolan:'#2563eb',Leonie:'#db2777',Anna:'#0891b2',Georg:'#d97706',Esther:'#059669',Snezhana:'#7c3aed',Oliver:'#f59e0b'};
 
+let chartInstance=null;
 
 function calcPoints(tip,result){
   if(!tip||!result)return null;
@@ -207,9 +231,12 @@ let matches=[],allTips=[],activeTab='standings';
 
 function showTab(tab){
   activeTab=tab;
-  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',(tab==='standings'&&i===0)||(tab==='matches'&&i===1)));
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',
+    (tab==='standings'&&i===0)||(tab==='matches'&&i===1)||(tab==='chart'&&i===2)));
   document.getElementById('tabStandings').style.display=tab==='standings'?'block':'none';
   document.getElementById('tabMatches').style.display=tab==='matches'?'block':'none';
+  document.getElementById('tabChart').style.display=tab==='chart'?'block':'none';
+  if(tab==='chart')renderChart();
 }
 
 async function load(){
@@ -242,23 +269,18 @@ function render(){
   });
   const ranked=[...PARTICIPANTS].sort((a,b)=>scores[b]-scores[a]);
 
-  // Assign ranks with ties (same score = same rank)
+  // Assign ranks with ties
   const rankOf={};
   ranked.forEach((p,i)=>{
     if(i===0||scores[p]<scores[ranked[i-1]]){rankOf[p]=i+1;}
     else{rankOf[p]=rankOf[ranked[i-1]];}
   });
 
-  // STANDINGS TAB — podium with tie support
+  // STANDINGS TAB
   const rankGroups={};
   ranked.forEach(p=>{const r=rankOf[p];if(r<=3)(rankGroups[r]=rankGroups[r]||[]).push(p);});
-
-  const podiumSlots=[
-    {rank:2,medal:'🥈',barH:50},
-    {rank:1,medal:'🥇',barH:70},
-    {rank:3,medal:'🥉',barH:35},
-  ];
-  const podiumHtml=`<div class="podium">${podiumSlots.map(({rank,medal,barH})=>{
+  const podiumSlots=[{rank:2,medal:'🥈'},{rank:1,medal:'🥇'},{rank:3,medal:'🥉'}];
+  const podiumHtml=`<div class="podium">${podiumSlots.map(({rank,medal})=>{
     const group=rankGroups[rank]||[];
     if(!group.length)return'';
     const small=group.length>1;
@@ -273,7 +295,7 @@ function render(){
     </div>`;
   }).join('')}</div>`;
 
-  const listHtml=ranked.map((p,i)=>`
+  const listHtml=ranked.map(p=>`
     <div class="standing-row">
       <div class="rank-num">${rankOf[p]}.</div>
       <div class="st-avatar" style="background:${COLORS[p]}">${p[0]}</div>
@@ -305,8 +327,6 @@ function render(){
       const resultHtml=m.result
         ?`<div class="result-box">${m.result}</div>`
         :`<div class="result-box tbd">${started?'läuft':'–:–'}</div>`;
-      // Before kickoff: show who tipped (✓) vs not (–), hide actual scores
-      // After kickoff: show all scores and points
       const tippedCount=PARTICIPANTS.filter(p=>tipMap[m.id]?.[p]).length;
       const hintHtml=!started
         ?`<div class="reveal-hint">🔒 Tipps werden nach Anstoß aufgedeckt · ${tippedCount}/7 haben getippt</div>`
@@ -315,9 +335,9 @@ function render(){
         const tip=tipMap[m.id]?.[p];
         const pts=calcPoints(tip,m.result);
         const hasTip=!!tip;
-        let scoreStr, hidden;
-        if(started){ scoreStr=tip||'–'; hidden=!tip; }
-        else { scoreStr=hasTip?'✓':'–'; hidden=!hasTip; }
+        let scoreStr,hidden;
+        if(started){scoreStr=tip||'–';hidden=!tip;}
+        else{scoreStr=hasTip?'✓':'–';hidden=!hasTip;}
         const ptsBadge=pts!==null&&started&&tip?`<span class="tip-pts-badge tp${pts}">${pts}</span>`:'';
         return`<div class="tip-item${hasTip?' has-tip':' no-tip'}">
           <div class="tip-avatar" style="background:${COLORS[p]}">${p[0]}</div>
@@ -337,6 +357,106 @@ function render(){
     return`<div class="day-label">📅 ${date.split('.')[0]}. Juni 2026</div>${rows}`;
   }).join('');
   document.getElementById('tabMatches').innerHTML=matchesHtml;
+
+  // Re-render chart if visible
+  if(activeTab==='chart')renderChart();
+}
+
+function renderChart(){
+  const now=new Date();
+  const tipMap={};
+  allTips.forEach(t=>{if(!tipMap[t.match_id])tipMap[t.match_id]={};tipMap[t.match_id][t.participant]=t.tip;});
+
+  // Only matches with results, sorted by kickoff
+  const played=matches.filter(m=>m.result&&new Date(m.kickoff_utc)<=now);
+
+  if(!played.length){
+    document.getElementById('tabChart').innerHTML=`<div class="chart-empty">Noch keine Ergebnisse vorhanden.</div>`;
+    chartInstance=null;
+    return;
+  }
+
+  // Build cumulative points per participant per match
+  const cumulative={};
+  PARTICIPANTS.forEach(p=>cumulative[p]=[0]);
+  played.forEach(m=>{
+    PARTICIPANTS.forEach(p=>{
+      const prev=cumulative[p][cumulative[p].length-1];
+      const pts=calcPoints(tipMap[m.id]?.[p],m.result)??0;
+      cumulative[p].push(prev+pts);
+    });
+  });
+
+  // Labels: "Sp. 1", "Sp. 2", ...
+  const labels=['Start',...played.map((m,i)=>`${m.home.slice(0,3)}–${m.away.slice(0,3)}`)];
+
+  const datasets=PARTICIPANTS.map(p=>({
+    label:p,
+    data:cumulative[p],
+    borderColor:COLORS[p],
+    backgroundColor:COLORS[p]+'33',
+    borderWidth:2.5,
+    pointRadius:played.length>20?0:3,
+    pointHoverRadius:5,
+    tension:0.3,
+    fill:false,
+  }));
+
+  document.getElementById('tabChart').innerHTML=`
+    <div class="chart-wrap">
+      <div class="chart-title">📈 Punkteverlauf nach Spiel</div>
+      <canvas id="progressChart"></canvas>
+      <div class="chart-legend">${PARTICIPANTS.map(p=>`
+        <div class="legend-item">
+          <div class="legend-dot" style="background:${COLORS[p]}"></div>${p}
+        </div>`).join('')}
+      </div>
+    </div>`;
+
+  if(chartInstance){chartInstance.destroy();chartInstance=null;}
+  const ctx=document.getElementById('progressChart').getContext('2d');
+  chartInstance=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets},
+    options:{
+      responsive:true,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          backgroundColor:'#0c1a30',
+          borderColor:'#1a2f50',
+          borderWidth:1,
+          titleColor:'#e8eef8',
+          bodyColor:'#e8eef8',
+          titleFont:{family:'Inter',weight:'700'},
+          bodyFont:{family:'Inter'},
+          callbacks:{
+            title:items=>{
+              const m=played[items[0].dataIndex-1];
+              return m?`${m.home} – ${m.away} (${m.result})`:'Start';
+            },
+            label:item=>`${item.dataset.label}: ${item.raw} Pkt`,
+          }
+        }
+      },
+      scales:{
+        x:{
+          ticks:{
+            color:'#607090',font:{family:'Inter',size:9},
+            maxRotation:45,
+            callback:(val,i)=>i===0?'Start':`Sp.${i}`,
+          },
+          grid:{color:'rgba(26,47,80,0.6)'},
+        },
+        y:{
+          beginAtZero:true,
+          ticks:{color:'#607090',font:{family:'Inter',size:11},stepSize:3},
+          grid:{color:'rgba(26,47,80,0.6)'},
+        }
+      }
+    }
+  });
 }
 
 // Live updates
