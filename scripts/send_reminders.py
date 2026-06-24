@@ -53,10 +53,12 @@ def main():
     in_24h = now + timedelta(hours=24)
 
     # Spiele der nächsten 24h laden
+    now_z    = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+    in_24h_z = in_24h.strftime("%Y-%m-%dT%H:%M:%SZ")
     matches = sb_get(
         f"matches?select=id,home,away,kickoff_utc"
-        f"&kickoff_utc=gt.{now.isoformat()}"
-        f"&kickoff_utc=lte.{in_24h.isoformat()}"
+        f"&kickoff_utc=gt.{now_z}"
+        f"&kickoff_utc=lte.{in_24h_z}"
         f"&order=kickoff_utc"
     )
 
