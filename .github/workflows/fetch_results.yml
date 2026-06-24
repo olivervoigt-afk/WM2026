@@ -1,10 +1,7 @@
 name: Ergebnisse automatisch abrufen
 
 on:
-  schedule:
-    # Jede Minute während der Turnierphase (11. Juni – 28. Juni 2026)
-    - cron: '* * * * *'
-  workflow_dispatch: # Manueller Start jederzeit möglich
+  workflow_dispatch: # Wird von cron-job.org jede Minute getriggert
 
 jobs:
   fetch:
