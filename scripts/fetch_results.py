@@ -1,7 +1,7 @@
 """
-WM 2026 – Automatische Ergebnisabfrage
+WM 2026 – Automatische Ergebnisabfrage + Livescores
 Quelle: football-data.org (kostenlose API)
-Läuft via GitHub Actions alle 5 Minuten
+Läuft via GitHub Actions jede Minute
 """
 
 import os, sys, requests
@@ -11,7 +11,6 @@ FOOTBALL_API_KEY = os.environ["FOOTBALL_API_KEY"]
 SUPABASE_URL     = os.environ["SUPABASE_URL"]
 SUPABASE_KEY     = os.environ["SUPABASE_KEY"]
 
-# Englische API-Namen → Deutsche DB-Namen
 TEAM_MAP = {
     "Mexico": "Mexiko",
     "South Africa": "Südafrika",
@@ -68,109 +67,141 @@ TEAM_MAP = {
     "Uzbekistan": "Usbekistan",
     "Colombia": "Kolumbien",
     "Paraguay": "Paraguay",
-    "New Zealand": "Neuseeland",
-    "Israel": "Israel",
 }
 
+SB_HEADERS = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": f"Bearer {SUPABASE_KEY}",
+    "Content-Type": "application/json",
+    "Prefer": "return=representation",
+}
 
 def sb_get(path):
-    r = requests.get(
-        f"{SUPABASE_URL}/rest/v1/{path}",
-        headers={"apikey": SUPABASE_KEY, "Authorization": f"Bearer {SUPABASE_KEY}"},
-        timeout=10,
-    )
+    r = requests.get(f"{SUPABASE_URL}/rest/v1/{path}", headers=SB_HEADERS, timeout=10)
     r.raise_for_status()
     return r.json()
-
 
 def sb_patch(path, data):
-    r = requests.patch(
-        f"{SUPABASE_URL}/rest/v1/{path}",
-        json=data,
-        headers={
-            "apikey": SUPABASE_KEY,
-            "Authorization": f"Bearer {SUPABASE_KEY}",
-            "Content-Type": "application/json",
-            "Prefer": "return=representation",
-        },
-        timeout=10,
-    )
+    r = requests.patch(f"{SUPABASE_URL}/rest/v1/{path}", json=data, headers=SB_HEADERS, timeout=10)
     r.raise_for_status()
     return r.json()
 
-
-def fetch_finished_matches():
+def fetch_api_matches(*statuses):
+    params = {"status": ",".join(statuses)}
     r = requests.get(
         "https://api.football-data.org/v4/competitions/WC/matches",
-        params={"status": "FINISHED"},
+        params=params,
         headers={"X-Auth-Token": FOOTBALL_API_KEY},
         timeout=15,
     )
     r.raise_for_status()
     return r.json().get("matches", [])
 
+def map_teams(api_m):
+    home_en = api_m.get("homeTeam", {}).get("name", "")
+    away_en = api_m.get("awayTeam", {}).get("name", "")
+    return TEAM_MAP.get(home_en), TEAM_MAP.get(away_en)
 
 def main():
     now = datetime.now(timezone.utc)
 
-    # Alle unsere Spiele ohne Ergebnis laden
-    db_matches = sb_get("matches?select=id,home,away,kickoff_utc,result&order=kickoff_utc")
-    open_matches = [m for m in db_matches if not m.get("result")]
+    # Alle DB-Spiele laden
+    db_matches = sb_get("matches?select=id,home,away,kickoff_utc,result,live_score,live_status&order=kickoff_utc")
+    db_index = {(m["home"], m["away"]): m for m in db_matches}
 
-    if not open_matches:
-        print("Alle Spiele haben bereits ein Ergebnis.")
-        return
-
-    # Index: (home_de, away_de) → db match
-    db_index = {}
-    for m in open_matches:
-        # Nur Spiele berücksichtigen die vor >105 min angepfiffen wurden
-        kickoff = datetime.fromisoformat(m["kickoff_utc"].replace("+00:00", "+00:00"))
-        if kickoff.tzinfo is None:
-            kickoff = kickoff.replace(tzinfo=timezone.utc)
-        if now - kickoff < timedelta(minutes=105):
-            continue
-        db_index[(m["home"], m["away"])] = m
-
-    if not db_index:
-        print("Keine Spiele bereit für Ergebnisabfrage (noch nicht >105 min nach Anstoß).")
-        return
-
-    # Ergebnisse von API holen
+    # --- 1. LAUFENDE SPIELE (IN_PLAY, HALF_TIME, PAUSED, EXTRA_TIME, PENALTY) ---
     try:
-        api_matches = fetch_finished_matches()
+        live_api = fetch_api_matches("IN_PLAY", "HALF_TIME", "PAUSED", "EXTRA_TIME", "PENALTY")
     except Exception as e:
-        print(f"API-Fehler: {e}", file=sys.stderr)
-        sys.exit(1)
+        print(f"API-Fehler (live): {e}", file=sys.stderr)
+        live_api = []
 
-    updated = 0
-    for api_m in api_matches:
-        score = api_m.get("score", {}).get("fullTime", {})
-        home_goals = score.get("home")
-        away_goals = score.get("away")
-        if home_goals is None or away_goals is None:
-            continue
-
-        home_en = api_m.get("homeTeam", {}).get("name", "")
-        away_en = api_m.get("awayTeam", {}).get("name", "")
-        home_de = TEAM_MAP.get(home_en)
-        away_de = TEAM_MAP.get(away_en)
-
+    live_keys = set()
+    for api_m in live_api:
+        home_de, away_de = map_teams(api_m)
         if not home_de or not away_de:
-            print(f"Kein Mapping für: {home_en} / {away_en}")
             continue
-
         db_m = db_index.get((home_de, away_de))
         if not db_m:
-            continue  # Spiel nicht in unserer DB oder schon mit Ergebnis
+            continue
 
-        result = f"{home_goals}:{away_goals}"
-        print(f"✓ Eintrage: {home_de} – {away_de} = {result}")
-        sb_patch(f"matches?id=eq.{db_m['id']}", {"result": result})
-        updated += 1
+        score = api_m.get("score", {})
+        # Nutze fullTime-Score (wird während des Spiels laufend aktualisiert)
+        ft = score.get("fullTime", {})
+        h, a = ft.get("home"), ft.get("away")
+        if h is None or a is None:
+            continue
 
-    print(f"\n{updated} Ergebnis(se) eingetragen.")
+        status = api_m.get("status", "")
+        minute = api_m.get("minute")
 
+        live_score = f"{h}:{a}"
+        if status == "HALF_TIME":
+            live_status = "HZ"
+        elif status == "EXTRA_TIME":
+            live_status = f"V {minute}'" if minute else "Verlängerung"
+        elif status == "PENALTY":
+            live_status = "Elfmeter"
+        else:
+            live_status = f"{minute}'" if minute else "Live"
+
+        key = (home_de, away_de)
+        live_keys.add(key)
+
+        # Nur updaten wenn sich was geändert hat
+        if db_m.get("live_score") != live_score or db_m.get("live_status") != live_status:
+            print(f"🔴 Live: {home_de} – {away_de} {live_score} ({live_status})")
+            sb_patch(f"matches?id=eq.{db_m['id']}", {
+                "live_score": live_score,
+                "live_status": live_status,
+            })
+
+    # --- 2. BEENDETE SPIELE ---
+    try:
+        finished_api = fetch_api_matches("FINISHED")
+    except Exception as e:
+        print(f"API-Fehler (finished): {e}", file=sys.stderr)
+        finished_api = []
+
+    updated = 0
+    for api_m in finished_api:
+        home_de, away_de = map_teams(api_m)
+        if not home_de or not away_de:
+            continue
+        db_m = db_index.get((home_de, away_de))
+        if not db_m:
+            continue
+
+        ft = api_m.get("score", {}).get("fullTime", {})
+        h, a = ft.get("home"), ft.get("away")
+        if h is None or a is None:
+            continue
+
+        result = f"{h}:{a}"
+        patch = {}
+        if not db_m.get("result"):
+            patch["result"] = result
+        # Live-Felder leeren wenn Spiel beendet
+        if db_m.get("live_score") or db_m.get("live_status"):
+            patch["live_score"] = None
+            patch["live_status"] = None
+
+        if patch:
+            print(f"✓ Ergebnis: {home_de} – {away_de} = {result}")
+            sb_patch(f"matches?id=eq.{db_m['id']}", patch)
+            updated += 1
+
+    # --- 3. Live-Felder leeren für Spiele die nicht mehr live sind ---
+    for (home_de, away_de), db_m in db_index.items():
+        if db_m.get("live_score") and (home_de, away_de) not in live_keys:
+            # Nur leeren wenn Spiel nicht in der FINISHED-Liste ist (verhindert Race condition)
+            if not db_m.get("result"):
+                pass  # Noch nicht fertig, Geduld
+            else:
+                print(f"🧹 Live-Daten leeren: {home_de} – {away_de}")
+                sb_patch(f"matches?id=eq.{db_m['id']}", {"live_score": None, "live_status": None})
+
+    print(f"\n{len(live_api)} live, {updated} Ergebnis(se) neu eingetragen.")
 
 if __name__ == "__main__":
     main()

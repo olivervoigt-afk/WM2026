@@ -123,6 +123,18 @@
     min-width:52px;text-align:center;
   }
   .result-box.tbd { color:var(--muted);font-size:0.82rem;border-color:transparent;background:transparent; }
+  .result-box.live { color:#fff;border-color:rgba(239,68,68,0.5);background:rgba(239,68,68,0.12); }
+  .live-badge {
+    display:inline-flex;align-items:center;gap:4px;
+    background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);
+    color:#ef4444;font-size:0.62rem;font-weight:800;
+    padding:2px 7px;border-radius:20px;white-space:nowrap;letter-spacing:0.3px;
+  }
+  .live-badge .ldot {
+    width:5px;height:5px;border-radius:50%;background:#ef4444;
+    animation:pulse 1s infinite;flex-shrink:0;
+  }
+  .match-block.is-live { border-color:rgba(239,68,68,0.3);box-shadow:0 0 12px rgba(239,68,68,0.08); }
   .tips-grid { display:flex;flex-wrap:wrap;gap:5px;padding:8px 12px 6px; }
   .tip-item {
     display:flex;align-items:center;gap:5px;
@@ -324,9 +336,15 @@ function render(){
   const matchesHtml=toggleHtml+Object.entries(byDate).map(([date,ms])=>{
     const rows=ms.map(m=>{
       const started=new Date(m.kickoff_utc)<=now;
+      const isLive=!m.result&&m.live_score;
       const resultHtml=m.result
         ?`<div class="result-box">${m.result}</div>`
-        :`<div class="result-box tbd">${started?'läuft':'–:–'}</div>`;
+        :isLive
+          ?`<div class="result-box live">${m.live_score}</div>`
+          :`<div class="result-box tbd">${started?'–:–':'–:–'}</div>`;
+      const liveBadgeHtml=isLive
+        ?`<span class="live-badge"><span class="ldot"></span>${m.live_status||'Live'}</span>`
+        :'';
       const tippedCount=PARTICIPANTS.filter(p=>tipMap[m.id]?.[p]).length;
       const hintHtml=!started
         ?`<div class="reveal-hint">🔒 Tipps werden nach Anstoß aufgedeckt · ${tippedCount}/7 haben getippt</div>`
@@ -345,10 +363,11 @@ function render(){
           ${ptsBadge}
         </div>`;
       }).join('');
-      return`<div class="match-block">
+      return`<div class="match-block${isLive?' is-live':''}">
         <div class="match-head">
           <span class="grp-tag">GR.${m.group_name}</span>
           <span class="match-teams-str">${m.home} – ${m.away}</span>
+          ${liveBadgeHtml}
           ${resultHtml}
         </div>
         ${hintHtml}<div class="tips-grid">${tipsHtml}</div>
@@ -481,7 +500,7 @@ function renderChart(){
 
 // Live updates
 sb.channel('dashboard')
-  .on('postgres_changes',{event:'*',schema:'public',table:'matches'},p=>{const m=matches.find(x=>x.id===p.new.id);if(m)m.result=p.new.result;render();})
+  .on('postgres_changes',{event:'*',schema:'public',table:'matches'},p=>{const m=matches.find(x=>x.id===p.new.id);if(m){m.result=p.new.result;m.live_score=p.new.live_score;m.live_status=p.new.live_status;}render();})
   .on('postgres_changes',{event:'*',schema:'public',table:'tips'},p=>{const i=allTips.findIndex(t=>t.id===p.new.id);if(i>=0)allTips[i]=p.new;else allTips.push(p.new);render();})
   .subscribe();
 
