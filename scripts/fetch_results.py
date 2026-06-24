@@ -19,6 +19,7 @@ TEAM_MAP = {
     "Czech Republic": "Tschechien",
     "Canada": "Kanada",
     "Bosnia and Herzegovina": "Bosnien-Herz.",
+    "Bosnia-Herzegovina": "Bosnien-Herz.",
     "USA": "USA",
     "United States": "USA",
     "Qatar": "Katar",
@@ -139,7 +140,7 @@ def main():
 
     # --- 1. LAUFENDE SPIELE (IN_PLAY, HALF_TIME, PAUSED, EXTRA_TIME, PENALTY) ---
     try:
-        live_api = fetch_api_matches("IN_PLAY", "HALF_TIME", "PAUSED", "EXTRA_TIME", "PENALTY")
+        live_api = fetch_api_matches("LIVE")
     except Exception as e:
         print(f"API-Fehler (live): {e}", file=sys.stderr)
         live_api = []
