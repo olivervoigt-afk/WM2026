@@ -299,6 +299,13 @@ async function load() {
 function render() {
   const now = new Date();
   let total=0, c3=0, c2=0, c1=0;
+
+  // Gesamtpunkte aus ALLEN Spielen (inkl. vergangene)
+  matches.forEach(m => {
+    const pts = calcPoints(tips[m.id]||'', m.result);
+    if (pts===3){total+=3;c3++;}else if(pts===2){total+=2;c2++;}else if(pts===1){total+=1;c1++;}
+  });
+
   const byDate = {};
   matches.forEach(m => (byDate[m.match_date]=byDate[m.match_date]||[]).push(m));
 
@@ -310,7 +317,6 @@ function render() {
       const tip = tips[m.id]||'';
       const [th='',ta=''] = tip ? tip.split(':') : ['',''];
       const pts = calcPoints(tip, m.result);
-      if (pts===3){total+=3;c3++;}else if(pts===2){total+=2;c2++;}else if(pts===1){total+=1;c1++;}
 
       const ptsBadge = pts!==null
         ? `<span class="pts-pill pp${pts}">${pts===3?'✓✓✓ ':pts===2?'✓✓ ':pts===1?'✓ ':'✗ '}${pts} Pkt</span>`
