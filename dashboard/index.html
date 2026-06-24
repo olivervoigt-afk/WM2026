@@ -376,23 +376,38 @@ function renderChart(){
     return;
   }
 
-  // Build cumulative points per participant per match
-  const cumulative={};
-  PARTICIPANTS.forEach(p=>cumulative[p]=[0]);
+  // Build cumulative points after each match
+  const cumPts={};
+  PARTICIPANTS.forEach(p=>cumPts[p]=[0]);
   played.forEach(m=>{
     PARTICIPANTS.forEach(p=>{
-      const prev=cumulative[p][cumulative[p].length-1];
+      const prev=cumPts[p][cumPts[p].length-1];
       const pts=calcPoints(tipMap[m.id]?.[p],m.result)??0;
-      cumulative[p].push(prev+pts);
+      cumPts[p].push(prev+pts);
     });
   });
 
-  // Labels: "Sp. 1", "Sp. 2", ...
-  const labels=['Start',...played.map((m,i)=>`${m.home.slice(0,3)}–${m.away.slice(0,3)}`)];
+  // Convert cumulative points to rank at each step
+  const n=played.length+1;
+  const rankHistory={};
+  PARTICIPANTS.forEach(p=>rankHistory[p]=[]);
+  for(let i=0;i<n;i++){
+    const pts={};
+    PARTICIPANTS.forEach(p=>pts[p]=cumPts[p][i]);
+    const sorted=[...PARTICIPANTS].sort((a,b)=>pts[b]-pts[a]);
+    PARTICIPANTS.forEach(p=>{
+      let rank=sorted.indexOf(p)+1;
+      // tie: same pts = same rank
+      if(rank>1&&pts[p]===pts[sorted[rank-2]])rank=rankHistory[sorted[rank-2]][i]??rank;
+      rankHistory[p].push(rank);
+    });
+  }
+
+  const labels=['Start',...played.map(m=>`${m.home.slice(0,3)}–${m.away.slice(0,3)}`)];
 
   const datasets=PARTICIPANTS.map(p=>({
     label:p,
-    data:cumulative[p],
+    data:rankHistory[p],
     borderColor:COLORS[p],
     backgroundColor:COLORS[p]+'33',
     borderWidth:2.5,
@@ -404,7 +419,7 @@ function renderChart(){
 
   document.getElementById('tabChart').innerHTML=`
     <div class="chart-wrap">
-      <div class="chart-title">📈 Punkteverlauf nach Spiel</div>
+      <div class="chart-title">📈 Tabellenplatz-Verlauf</div>
       <canvas id="progressChart"></canvas>
       <div class="chart-legend">${PARTICIPANTS.map(p=>`
         <div class="legend-item">
@@ -436,7 +451,7 @@ function renderChart(){
               const m=played[items[0].dataIndex-1];
               return m?`${m.home} – ${m.away} (${m.result})`:'Start';
             },
-            label:item=>`${item.dataset.label}: ${item.raw} Pkt`,
+            label:item=>`${item.dataset.label}: Platz ${item.raw}`,
           }
         }
       },
@@ -450,8 +465,13 @@ function renderChart(){
           grid:{color:'rgba(26,47,80,0.6)'},
         },
         y:{
-          beginAtZero:true,
-          ticks:{color:'#607090',font:{family:'Inter',size:11},stepSize:3},
+          reverse:true,
+          min:1,
+          max:PARTICIPANTS.length,
+          ticks:{
+            color:'#607090',font:{family:'Inter',size:11},stepSize:1,
+            callback:v=>Number.isInteger(v)?`${v}.`:'',
+          },
           grid:{color:'rgba(26,47,80,0.6)'},
         }
       }
