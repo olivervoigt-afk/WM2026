@@ -508,11 +508,12 @@ sb.channel('dashboard')
   .on('postgres_changes',{event:'*',schema:'public',table:'tips'},p=>{const i=allTips.findIndex(t=>t.id===p.new.id);if(i>=0)allTips[i]=p.new;else allTips.push(p.new);render();})
   .subscribe();
 
-// Polling-Fallback: alle 15s Live-Daten neu laden wenn Spiele laufen
+// Polling-Fallback: alle 15s alle laufenden/gerade gestarteten Spiele aktualisieren
 async function pollLive(){
-  const hasLive=matches.some(m=>m.live_score&&!m.result);
-  if(!hasLive)return;
-  const{data}=await sb.from('matches').select('id,result,live_score,live_status').not('live_score','is',null);
+  const now=new Date();
+  const anyStarted=matches.some(m=>!m.result&&new Date(m.kickoff_utc)<=now);
+  if(!anyStarted)return;
+  const{data}=await sb.from('matches').select('id,result,live_score,live_status');
   if(!data)return;
   let changed=false;
   data.forEach(row=>{
