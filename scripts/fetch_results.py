@@ -165,14 +165,19 @@ def main():
         minute = api_m.get("minute")
 
         live_score = f"{h}:{a}"
+        ht = score.get("halfTime", {})
+        ht_played = ht.get("home") is not None
+
         if status in ("HALF_TIME", "PAUSED"):
-            live_status = "HZ"
+            live_status = "Halbzeit"
         elif status == "EXTRA_TIME":
             live_status = "Verlängerung"
         elif status == "PENALTY":
             live_status = "Elfmeter"
+        elif ht_played:
+            live_status = "2. HZ"
         else:
-            live_status = "Live"
+            live_status = "1. HZ"
 
         key = (home_de, away_de)
         live_keys.add(key)
