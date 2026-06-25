@@ -270,6 +270,20 @@ if (sessionStorage.getItem(SESSION_KEY)) {
   load();
 }
 
+const ROUND_LABELS = {
+  'Rd. 32': 'Sechzehntelfinale',
+  'Achtelfinale': 'Achtelfinale',
+  'Viertelfinale': 'Viertelfinale',
+  'Halbfinale': 'Halbfinale',
+  'Platz 3': 'Spiel um Platz 3',
+  'Finale': 'Finale',
+};
+function roundLabel(g) {
+  if (ROUND_LABELS[g]) return ROUND_LABELS[g];
+  if (g && g.startsWith('Gruppe')) return 'Gr. ' + g.replace('Gruppe ', '');
+  return g || '';
+}
+
 function calcPoints(tip, result) {
   if (!tip || !result) return null;
   const [th, ta] = tip.split(':').map(Number);
@@ -322,7 +336,7 @@ function render() {
 
       return `<div class="match-card${locked?' locked':''}">
         <div class="match-top">
-          <span class="grp-badge">GR. ${m.group_name}</span>
+          <span class="grp-badge">${roundLabel(m.group_name)}</span>
           <span class="match-time">${fmtTime(m.kickoff_utc)}</span>
         </div>
         <div class="match-teams">
