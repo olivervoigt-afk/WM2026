@@ -78,37 +78,46 @@ def main():
         kt_de = kt.astimezone(timezone(timedelta(hours=2)))
         print(f"  {kt_de.strftime('%H:%M')} Uhr  {m['home']} – {m['away']}")
 
-    print()
-    sent = 0
-    for name, number in PARTICIPANTS.items():
+    # Fehlende Tipps pro Person ermitteln
+    missing_per = {}
+    for name in PARTICIPANTS:
         missing = [m for m in matches if (m["id"], name) not in tipped]
-        if not missing:
-            print(f"✓ {name} – alles getippt")
-            continue
+        if missing:
+            missing_per[name] = missing
 
-        # Spielliste für die Nachricht
-        spiele_lines = []
-        for m in missing:
-            kt = datetime.fromisoformat(m["kickoff_utc"].replace("+00:00","")).replace(tzinfo=timezone.utc)
-            kt_de = kt.astimezone(timezone(timedelta(hours=2)))
-            spiele_lines.append(f"  ⏰ {kt_de.strftime('%H:%M')} Uhr – {m['home']} vs {m['away']}")
-        spiele_text = "\n".join(spiele_lines)
+    if not missing_per:
+        print("Alle haben getippt – keine Nachricht nötig.")
+        return
 
-        msg = (
-            f"⚽ *WM 2026 Tippspiel – Familie Voigt*\n\n"
-            f"Hallo {name}! Du hast noch keine Tipps für folgende Spiele abgegeben:\n\n"
-            f"{spiele_text}\n\n"
-            f"Bitte noch vor Anstoß tippen:\n{TIPP_URL}?name={name}"
+    # Übersicht der Spiele (einmalig)
+    spiele_lines = []
+    for m in matches:
+        kt = datetime.fromisoformat(m["kickoff_utc"].replace("+00:00","")).replace(tzinfo=timezone.utc)
+        kt_de = kt.astimezone(timezone(timedelta(hours=2)))
+        spiele_lines.append(f"  ⏰ {kt_de.strftime('%H:%M')} Uhr – {m['home']} vs {m['away']}")
+    spiele_text = "\n".join(spiele_lines)
+
+    # Pro Person: fehlende Spiele auflisten
+    person_lines = []
+    for name, ms in missing_per.items():
+        spiele = ", ".join(
+            f"{datetime.fromisoformat(m['kickoff_utc'].replace('+00:00','')).replace(tzinfo=timezone.utc).astimezone(timezone(timedelta(hours=2))).strftime('%H:%M')} {m['home']}–{m['away']}"
+            for m in ms
         )
+        person_lines.append(f"  ❌ *{name}*: {spiele}")
 
-        status, resp = send_whatsapp(number, msg)
-        if status in (200, 201):
-            print(f"📱 Erinnerung gesendet: {name} ({number})")
-            sent += 1
-        else:
-            print(f"❌ Fehler bei {name}: {resp.get('message','')}", file=sys.stderr)
+    msg = (
+        f"⚽ *WM 2026 Tippspiel – Tipp-Übersicht*\n\n"
+        f"Folgende Spiele stehen in den nächsten 24h an:\n{spiele_text}\n\n"
+        f"Noch nicht getippt:\n" + "\n".join(person_lines) + "\n\n"
+        f"Dashboard: {TIPP_URL.replace('tipp/','dashboard/')}"
+    )
 
-    print(f"\n{sent} Erinnerung(en) gesendet.")
+    status, resp = send_whatsapp(PARTICIPANTS["Oliver"], msg)
+    if status in (200, 201):
+        print(f"📱 Zusammenfassung an Oliver gesendet ({len(missing_per)} Personen fehlen)")
+    else:
+        print(f"❌ Fehler: {resp.get('message','')}", file=sys.stderr)
 
 if __name__ == "__main__":
     main()
