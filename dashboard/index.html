@@ -97,7 +97,10 @@
     width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;
     font-weight:800;color:#fff;font-size:0.9rem;flex-shrink:0;
   }
-  .st-name { flex:1;font-size:0.95rem;font-weight:700; }
+  .st-name { flex:1;font-size:0.95rem;font-weight:700;display:flex;align-items:center;gap:5px; }
+  .trend { font-size:0.8rem;font-weight:800; }
+  .trend.up { color:#22c55e; }
+  .trend.down { color:#ef4444; }
   .st-chips { display:flex;gap:5px;align-items:center; }
   .chip { font-size:0.62rem;font-weight:800;padding:2px 6px;border-radius:8px; }
   .c3{background:rgba(34,197,94,0.15);color:var(--green);}
@@ -289,6 +292,29 @@ function render(){
     else{rankOf[p]=rankOf[ranked[i-1]];}
   });
 
+  // Trend: Rang vor 24h berechnen
+  const ago24=new Date(now.getTime()-24*60*60*1000);
+  const scoresYest={};
+  PARTICIPANTS.forEach(p=>{scoresYest[p]=0;});
+  matches.forEach(m=>{
+    if(!m.result||new Date(m.kickoff_utc)>ago24)return;
+    PARTICIPANTS.forEach(p=>{
+      const pts=calcPoints(tipMap[m.id]?.[p],m.result);
+      if(pts!==null)scoresYest[p]+=pts;
+    });
+  });
+  const rankedYest=[...PARTICIPANTS].sort((a,b)=>scoresYest[b]-scoresYest[a]);
+  const rankYestOf={};
+  rankedYest.forEach((p,i)=>{
+    if(i===0||scoresYest[p]<scoresYest[rankedYest[i-1]]){rankYestOf[p]=i+1;}
+    else{rankYestOf[p]=rankYestOf[rankedYest[i-1]];}
+  });
+  const trendOf={};
+  PARTICIPANTS.forEach(p=>{
+    const diff=rankYestOf[p]-rankOf[p]; // positiv = besser
+    trendOf[p]=diff>0?'up':diff<0?'down':'';
+  });
+
   // STANDINGS TAB
   const rankGroups={};
   ranked.forEach(p=>{const r=rankOf[p];if(r<=3)(rankGroups[r]=rankGroups[r]||[]).push(p);});
@@ -312,7 +338,7 @@ function render(){
     <div class="standing-row">
       <div class="rank-num">${rankOf[p]}.</div>
       <div class="st-avatar" style="background:${COLORS[p]}">${p[0]}</div>
-      <div class="st-name">${p}</div>
+      <div class="st-name">${p}${trendOf[p]==='up'?'<span class="trend up">↑</span>':trendOf[p]==='down'?'<span class="trend down">↓</span>':''}</div>
       <div class="st-chips">
         ${bd[p][3]>0?`<span class="chip c3">✓✓✓×${bd[p][3]}</span>`:''}
         ${bd[p][2]>0?`<span class="chip c2">✓✓×${bd[p][2]}</span>`:''}
