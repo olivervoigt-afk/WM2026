@@ -15,6 +15,7 @@ TEAM_MAP = {
     "Mexico": "Mexiko",
     "South Africa": "Südafrika",
     "Korea Republic": "Südkorea",
+    "South Korea": "Südkorea",
     "Czechia": "Tschechien",
     "Czech Republic": "Tschechien",
     "Canada": "Kanada",
