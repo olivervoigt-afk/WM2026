@@ -1,10 +1,7 @@
 name: Tipp-Erinnerung via WhatsApp
 
 on:
-  schedule:
-    # Täglich um 17:00 Uhr MESZ (= 15:00 UTC)
-    - cron: '0 15 * * *'
-  workflow_dispatch: # Manueller Start zum Testen
+  workflow_dispatch: # Wird von cron-job.org täglich um 15:00 UTC (17:00 MESZ) getriggert
 
 jobs:
   remind:
