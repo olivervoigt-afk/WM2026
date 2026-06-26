@@ -397,8 +397,9 @@ function render(){
         </div>`;
       }).join('');
       const kickoffStr=new Date(m.kickoff_utc).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Berlin'})+' Uhr';
+      const isKO=m.group_name&&!m.group_name.startsWith('Gruppe');
       const leftTag=!started&&!isLive
-        ?`<span class="grp-tag">${kickoffStr}</span>`
+        ?`<span class="grp-tag">${kickoffStr}</span>${isKO?`<span class="grp-tag" style="background:rgba(99,102,241,0.15);color:#a5b4fc;border-color:rgba(99,102,241,0.3)">${roundLabel(m.group_name)}</span>`:''}`
         :isLive?''
         :`<span class="grp-tag">${roundLabel(m.group_name)}</span>`;
       return`<div class="match-block${isLive?' is-live':''}">
