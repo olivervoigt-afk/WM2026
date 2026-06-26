@@ -239,6 +239,9 @@ function calcPoints(tip,result){
   if(Math.sign(th-ta)===Math.sign(rh-ra))return 1;
   return 0;
 }
+const ROUND_LABELS={'Rd. 32':'Sechzehntelfinale','Achtelfinale':'Achtelfinale','Viertelfinale':'Viertelfinale','Halbfinale':'Halbfinale','Platz 3':'Spiel um Platz 3','Finale':'Finale'};
+function roundLabel(g){if(ROUND_LABELS[g])return ROUND_LABELS[g];if(g&&g.startsWith('Gruppe'))return'Gr.'+g.replace('Gruppe','');return g||'';}
+
 function fmtTime(utc){
   return new Date(utc).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',timeZone:'Europe/Berlin'})+' Uhr';
 }
@@ -397,7 +400,7 @@ function render(){
       const leftTag=!started&&!isLive
         ?`<span class="grp-tag">${kickoffStr}</span>`
         :isLive?''
-        :`<span class="grp-tag">GR.${m.group_name}</span>`;
+        :`<span class="grp-tag">${roundLabel(m.group_name)}</span>`;
       return`<div class="match-block${isLive?' is-live':''}">
         <div class="match-head">
           ${leftTag}
