@@ -44,6 +44,7 @@ TEAM_MAP = {
     "Tunisia": "Tunesien",
     "Spain": "Spanien",
     "Cape Verde": "Kap Verde",
+    "Cape Verde Islands": "Kap Verde",
     "Belgium": "Belgien",
     "Egypt": "Ägypten",
     "Saudi Arabia": "Saudi-Arabien",
