@@ -208,7 +208,13 @@ def main():
         if not db_m:
             continue
 
-        ft = api_m.get("score", {}).get("fullTime", {})
+        score = api_m.get("score", {})
+        duration = score.get("duration", "REGULAR")
+        # Bei Verlängerung/Elfmeter regularTime nutzen (fullTime enthält ET-Tore)
+        if duration in ("EXTRA_TIME", "PENALTY_SHOOTOUT"):
+            ft = score.get("regularTime", {})
+        else:
+            ft = score.get("fullTime", {})
         h, a = ft.get("home"), ft.get("away")
         if h is None or a is None:
             continue
